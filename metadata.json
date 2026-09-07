@@ -1,0 +1,6 @@
+{
+  "name": "Église du Nazaréen de Damé",
+  "description": "Plateforme officielle de l'Église du Nazaréen de Damé en Haïti. Devise : « Sainteté à l’Éternel ». Informations institutionnelles, cultes, ministères, école professionnelle EPND, projets sociaux et jeux bibliques interactifs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,103 @@
+[
+  {
+    "name": "Pasteur Émile",
+    "email": "emile.test@example.com",
+    "message": "Nouvel abonnement à la newsletter paroissiale : emile.test@example.com",
+    "category": "Newsletter Subscribers",
+    "status": "New",
+    "details": {
+      "email": "emile.test@example.com"
+    },
+    "id": "sub-1788697485155-672",
+    "dateReceived": "2026-09-06T12:24:45.155Z",
+    "notes": ""
+  },
+  {
+    "name": "Jean-Baptiste Pierre",
+    "email": "jeanbaptiste@example.com",
+    "phone": "+509 3800 1122",
+    "message": "Demande de certificat de baptême pour dossier académique",
+    "category": "Document Requests",
+    "details": {
+      "documentType": "Certificat de baptême"
+    },
+    "id": "sub-1788697480743-441",
+    "dateReceived": "2026-09-06T12:24:40.743Z",
+    "status": "New",
+    "notes": ""
+  },
+  {
+    "id": "sub-1001",
+    "name": "Jean-Baptiste Saint-Juste",
+    "email": "jb.stjuste@example.com",
+    "phone": "+509 3812 4578",
+    "message": "Demande urgente de certificat de baptême pour dossier de mariage civil.",
+    "dateReceived": "2026-09-06T10:24:32.622Z",
+    "category": "Document Requests",
+    "status": "Document prêt",
+    "details": {
+      "documentType": "Certificat de baptême",
+      "approxBaptismYear": "2014"
+    },
+    "notes": "Certificat signé par le Pasteur Bequel Cherelus."
+  },
+  {
+    "id": "sub-1002",
+    "name": "Marie Nicole Faustin",
+    "email": "mn.faustin@example.com",
+    "phone": "+509 4678 9012",
+    "message": "Prière pour ma mère hospitalisée à Port-de-Paix pour une crise d’hypertension.",
+    "dateReceived": "2026-09-06T04:24:32.622Z",
+    "category": "Prayer Requests",
+    "status": "In progress",
+    "details": {
+      "confidential": true,
+      "category": "Santé & Guérison"
+    },
+    "notes": "Transmis au Pasteur Bequel pour la prière du vendredi soir."
+  },
+  {
+    "id": "sub-1003",
+    "name": "Claudel Joseph",
+    "email": "claudel.j@example.com",
+    "phone": "+509 3456 7890",
+    "message": "Demande d’attestation de membre régulier pour admission académique.",
+    "dateReceived": "2026-09-05T12:24:32.622Z",
+    "category": "Document Requests",
+    "status": "In progress",
+    "details": {
+      "documentType": "Attestation de membre",
+      "membershipYears": "Depuis 2018"
+    },
+    "notes": "En cours de signature par le secrétariat."
+  },
+  {
+    "id": "sub-1004",
+    "name": "Guerline Dumesle",
+    "email": "guerline.d@example.com",
+    "phone": "+509 4233 1188",
+    "message": "Inscription au programme de formation en couture de l’École Professionnelle EPND.",
+    "dateReceived": "2026-09-04T12:24:32.622Z",
+    "category": "Event Registration",
+    "status": "Completed",
+    "details": {
+      "program": "Couture Industrielle",
+      "session": "Session 2026"
+    },
+    "notes": "Dossier validé, frais d’inscription enregistrés."
+  },
+  {
+    "id": "sub-1005",
+    "name": "Wilfrid Saint-Fleur",
+    "email": "w.saintfleur@example.com",
+    "phone": "+509 3788 9900",
+    "message": "Proposition de bénévolat pour l’animation musicale des jeunes JNI.",
+    "dateReceived": "2026-09-03T12:24:32.622Z",
+    "category": "Volunteer Requests",
+    "status": "Completed",
+    "details": {
+      "competence": "Guitare & Chorale"
+    },
+    "notes": "Entretien réalisé avec Jimmy Cherelus."
+  }
+]

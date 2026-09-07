@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Cinzel', Georgia, serif;
+  --font-serif-body: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+  --color-marine-950: #040D1B;
+  --color-marine-900: #081B36;
+  --color-marine-800: #0F2C59;
+  --color-marine-700: #1A3D73;
+  --color-marine-600: #1E4682;
+  --color-gold-400: #F7E8A4;
+  --color-gold-500: #D4AF37;
+  --color-gold-600: #B38E22;
+  --color-moka: #5C4033;
+  --color-moka-light: #805B48;
+}
+
+@layer base {
+  :root {
+    --color-marine: #0F2C59;
+    --color-marine-dark: #081B36;
+    --color-marine-light: #1E4682;
+    --color-gold: #D4AF37;
+    --color-gold-light: #F7E8A4;
+    --color-gold-dark: #B38E22;
+    --color-moka: #5C4033;
+    --color-moka-light: #805B48;
+    --color-cream: #F8F9FA;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color: #1a2536;
+    background-color: #F8F9FA;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Cinzel', Georgia, serif;
+  }
+
+  .font-serif-body {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+}
+
+/* Custom utility classes */
+.bg-marine-900 { background-color: #081B36; }
+.bg-marine-800 { background-color: #0F2C59; }
+.bg-marine-700 { background-color: #1A3D73; }
+.text-marine-900 { color: #081B36; }
+.text-marine-800 { color: #0F2C59; }
+
+.bg-gold-500 { background-color: #D4AF37; }
+.bg-gold-600 { background-color: #B38E22; }
+.text-gold-500 { color: #D4AF37; }
+.text-gold-600 { color: #B38E22; }
+.border-gold-500 { border-color: #D4AF37; }
+
+.bg-moka { background-color: #5C4033; }
+.text-moka { color: #5C4033; }
+.border-moka { border-color: #5C4033; }
+
+/* Custom smooth scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #D4AF37;
+}

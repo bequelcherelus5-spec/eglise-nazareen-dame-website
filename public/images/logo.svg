@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- Gold gradients -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F9D776" />
+      <stop offset="50%" stop-color="#E5B741" />
+      <stop offset="100%" stop-color="#B8861E" />
+    </linearGradient>
+    <linearGradient id="goldLight" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#D4A02A" />
+      <stop offset="50%" stop-color="#FFE599" />
+      <stop offset="100%" stop-color="#C58E1B" />
+    </linearGradient>
+
+    <!-- Path for Top Text: ÉGLISE DU -->
+    <path id="topTextArc" d="M 85,250 A 165,165 0 0,1 415,250" fill="none" />
+    <!-- Path for Bottom Text: NAZARÉEN De DAMÉ -->
+    <path id="bottomTextArc" d="M 425,250 A 175,175 0 0,1 75,250" fill="none" />
+  </defs>
+
+  <!-- Base Black Background Circle -->
+  <circle cx="250" cy="250" r="242" fill="#0A0D12" stroke="#E5B741" stroke-width="4" />
+  
+  <!-- Outer Ring -->
+  <circle cx="250" cy="250" r="232" fill="none" stroke="url(#goldGrad)" stroke-width="3" />
+  
+  <!-- Inner Ring separating text from center -->
+  <circle cx="250" cy="250" r="150" fill="none" stroke="url(#goldGrad)" stroke-width="3.5" />
+  <circle cx="250" cy="250" r="144" fill="#0A0D12" stroke="#8C6710" stroke-width="1.5" />
+
+  <!-- TOP TEXT: ÉGLISE DU -->
+  <text fill="url(#goldLight)" font-family="'Cinzel', 'Times New Roman', Georgia, serif" font-weight="900" font-size="40" letter-spacing="9">
+    <textPath href="#topTextArc" startOffset="50%" text-anchor="middle">
+      ÉGLISE DU
+    </textPath>
+  </text>
+
+  <!-- BOTTOM TEXT: NAZARÉEN De DAMÉ -->
+  <text fill="url(#goldLight)" font-family="'Cinzel', 'Times New Roman', Georgia, serif" font-weight="900" font-size="34" letter-spacing="5">
+    <textPath href="#bottomTextArc" startOffset="50%" text-anchor="middle">
+      NAZARÉEN <tspan font-size="24" font-weight="bold">De</tspan> DAMÉ
+    </textPath>
+  </text>
+
+  <!-- CENTER EMBLEM: FLAME / DOVE OF THE HOLY SPIRIT -->
+  <g transform="translate(250, 250)">
+    <!-- Central Holy Spirit Dove & Soaring Flame -->
+    <g transform="translate(-50, -40)">
+      <!-- Stylized Wing and Flame Silhouette -->
+      <path d="M -15,40 
+               C -40,35 -65,15 -60,-15 
+               C -55,-40 -35,-65 -20,-75 
+               C -15,-80 -10,-70 -12,-55 
+               C -15,-35 0,-15 15,-5 
+               C 22,-30 25,-60 10,-85 
+               C 5,-95 18,-92 25,-80 
+               C 42,-50 35,-15 22,12 
+               C 32,2 45,-15 50,-35 
+               C 53,-45 58,-40 56,-30 
+               C 50,0 25,35 -5,45 Z" 
+            fill="url(#goldGrad)" />
+
+      <!-- Dove Head and Beak facing Left -->
+      <path d="M -25,-5 
+               C -40,-12 -45,-3 -35,10 
+               C -25,22 -8,25 0,18 
+               C -10,12 -20,8 -25,-5 Z" 
+            fill="url(#goldLight)" />
+            
+      <!-- Flame Core Glow Accent -->
+      <path d="M -10,32 
+               C -25,25 -35,10 -25,-5 
+               C -18,10 -5,22 10,25 
+               C 0,30 -5,32 -10,32 Z" 
+            fill="#FFF2B2" opacity="0.8" />
+    </g>
+
+    <!-- RIGHT TEXT: SAINTETÉ A L'ETERNEL -->
+    <g transform="translate(15, -45)">
+      <text x="0" y="0" fill="url(#goldLight)" font-family="'Cinzel', 'Arial Black', sans-serif" font-weight="900" font-size="22" letter-spacing="1.5">
+        SAINTETÉ
+      </text>
+      <text x="0" y="24" fill="url(#goldLight)" font-family="'Cinzel', 'Arial Black', sans-serif" font-weight="900" font-size="18" letter-spacing="1">
+        A L'ETERNEL
+      </text>
+    </g>
+
+    <!-- BOTTOM CENTER: OPEN HOLY BIBLE WITH PAGES & RIBBON -->
+    <g transform="translate(0, 48)">
+      <!-- Open Bible Base / Cover Outline -->
+      <path d="M -68,-10 
+               L -5,12 
+               L 55,-3 
+               L -5,30 Z" 
+            fill="#0A0D12" stroke="url(#goldGrad)" stroke-width="2.5" />
+      
+      <!-- Open Book Pages (Perspective) -->
+      <path d="M -65,-8 
+               Q -35,5 0,2 
+               Q 35,5 60,-5 
+               L 55,16 
+               Q 30,24 0,22 
+               Q -35,24 -60,10 Z" 
+            fill="url(#goldGrad)" />
+      
+      <!-- Page Layers / Texture -->
+      <path d="M -62,-5 Q -33,7 0,4 Q 33,7 57,-2" fill="none" stroke="#0A0D12" stroke-width="1.8" />
+      <path d="M -60,-1 Q -33,10 0,7 Q 33,10 55,2" fill="none" stroke="#0A0D12" stroke-width="1.5" />
+      <path d="M -58,3 Q -33,13 0,10 Q 33,13 53,6" fill="none" stroke="#0A0D12" stroke-width="1.2" />
+
+      <!-- Center Spine Divider -->
+      <line x1="0" y1="3" x2="0" y2="22" stroke="#0A0D12" stroke-width="2.5" />
+
+      <!-- Bookmark Ribbon Extending Below Spine -->
+      <path d="M -2,22 L -7,40 L 0,35 L 7,40 L 2,22 Z" fill="url(#goldLight)" stroke="#8C6710" stroke-width="1" />
+    </g>
+  </g>
+</svg>
