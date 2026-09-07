@@ -11,6 +11,12 @@ import {
 } from '../../types';
 import { apiService, AdminUser } from '../../services/apiService';
 import { CHURCH_INFO } from '../../data/churchData';
+import { CHURCH_ASSETS } from '../../data/churchMedia';
+import { 
+  adminSecurityService, 
+  DEFAULT_ADMIN_PASSCODE, 
+  ADMIN_RECOVERY_EMAIL 
+} from '../../services/adminSecurityService';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -29,6 +35,7 @@ import {
   PlusCircle, 
   Send, 
   Eye, 
+  EyeOff,
   ExternalLink, 
   LogOut, 
   RefreshCw, 
@@ -44,7 +51,10 @@ import {
   Play,
   Pause,
   Upload,
-  Music
+  Music,
+  Key,
+  Lock,
+  RotateCcw
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -60,7 +70,8 @@ type DashboardTab =
   | 'prayers' 
   | 'newsletter' 
   | 'events'
-  | 'podcasts';
+  | 'podcasts'
+  | 'security';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   currentUser,
@@ -69,6 +80,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   
+  // Security settings state
+  const [oldPasscode, setOldPasscode] = useState('');
+  const [newPasscode, setNewPasscode] = useState('');
+  const [confirmPasscode, setConfirmPasscode] = useState('');
+  const [showOldPass, setShowOldPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [securitySuccess, setSecuritySuccess] = useState<string | null>(null);
+  const [securityError, setSecurityError] = useState<string | null>(null);
+  const [activePasscode, setActivePasscode] = useState<string>(() => adminSecurityService.getPasscode());
+  const [showCurrentCode, setShowCurrentCode] = useState(false);
+
   // Data state
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
@@ -376,6 +400,78 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Change Admin Passcode handler
+  const handleUpdatePasscode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSecurityError(null);
+    setSecuritySuccess(null);
+
+    if (!oldPasscode.trim()) {
+      setSecurityError("Veuillez renseigner votre ancien code d'accès actuel.");
+      return;
+    }
+
+    if (!newPasscode.trim()) {
+      setSecurityError("Veuillez renseigner votre nouveau code d'accès.");
+      return;
+    }
+
+    if (newPasscode.trim().length < 4) {
+      setSecurityError("Le nouveau code d'accès doit contenir au moins 4 caractères.");
+      return;
+    }
+
+    if (newPasscode.trim() !== confirmPasscode.trim()) {
+      setSecurityError("La confirmation ne correspond pas au nouveau code d'accès.");
+      return;
+    }
+
+    setSecurityLoading(true);
+
+    try {
+      const res = await adminSecurityService.changePasscode(oldPasscode.trim(), newPasscode.trim());
+      if (res.success) {
+        setActivePasscode(newPasscode.trim());
+        setOldPasscode('');
+        setNewPasscode('');
+        setConfirmPasscode('');
+        setSecuritySuccess(res.message);
+      } else {
+        setSecurityError(res.message);
+      }
+    } catch (err: any) {
+      setSecurityError(err.message || "Erreur lors de la modification du code d'accès.");
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
+
+  // Emergency reset to initial default passcode 123456
+  const handleResetToDefaultCode = async () => {
+    if (!window.confirm("Voulez-vous vraiment rétablir le code d'accès administrateur au code initial par défaut : 123456 ?")) {
+      return;
+    }
+    setSecurityLoading(true);
+    setSecurityError(null);
+    setSecuritySuccess(null);
+    try {
+      const res = await adminSecurityService.recoverPasscode(ADMIN_RECOVERY_EMAIL);
+      if (res.success) {
+        setActivePasscode(DEFAULT_ADMIN_PASSCODE);
+        setOldPasscode('');
+        setNewPasscode('');
+        setConfirmPasscode('');
+        setSecuritySuccess(`Le code d'accès a été réinitialisé au code par défaut : ${DEFAULT_ADMIN_PASSCODE}.`);
+      } else {
+        setSecurityError(res.message);
+      }
+    } catch {
+      setSecurityError("Erreur lors de la réinitialisation du code.");
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
+
   // Filtered submissions
   const filteredSubmissions = useMemo(() => {
     return submissions.filter(item => {
@@ -416,7 +512,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Brand Header */}
           <div className="p-5 border-b border-white/10 flex items-center gap-3">
             <img 
-              src="/images/logo.svg" 
+              src={CHURCH_ASSETS.logo.src || "/images/logo.png"} 
               alt="Sceau Église de Damé" 
               className="h-10 w-10 object-contain bg-white/10 p-1 rounded-xl"
             />
@@ -567,6 +663,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {podcasts.length}
               </span>
             </button>
+
+            <button
+              onClick={() => { setActiveTab('security'); }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'security'
+                  ? 'bg-[#D4AF37] text-slate-950 font-bold shadow-sm'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="h-4 w-4" />
+                <span>Paramètres de sécurité</span>
+              </div>
+              <span className="text-[10px] opacity-70 font-mono bg-white/10 px-1.5 py-0.5 rounded">
+                Code
+              </span>
+            </button>
           </nav>
         </div>
 
@@ -604,6 +717,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {activeTab === 'events' && "Registre des Inscriptions aux Événements"}
                 {activeTab === 'newsletter' && "Système d'Abonnements & Newsletter"}
                 {activeTab === 'podcasts' && "Gestion des Podcasts & Messages Audio"}
+                {activeTab === 'security' && "Paramètres de Sécurité & Code d'Accès"}
               </h2>
               {refreshing && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
             </div>
@@ -636,82 +750,84 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="p-6 space-y-6">
 
           {/* 1. Statistics Cards (Always visible on Overview, or top banner) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Total Messages */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Total Formulaires
-                </span>
-                <h3 className="text-2xl font-black font-display text-slate-900 mt-1">
-                  {stats?.totalMessages ?? submissions.length}
-                </h3>
-                <span className="text-[11px] text-slate-500 mt-1 block">
-                  Toutes catégories confondues
-                </span>
+          {activeTab !== 'security' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Total Messages */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Total Formulaires
+                  </span>
+                  <h3 className="text-2xl font-black font-display text-slate-900 mt-1">
+                    {stats?.totalMessages ?? submissions.length}
+                  </h3>
+                  <span className="text-[11px] text-slate-500 mt-1 block">
+                    Toutes catégories confondues
+                  </span>
+                </div>
+                <div className="h-12 w-12 rounded-2xl bg-[#0F2C59]/10 text-[#0F2C59] flex items-center justify-center">
+                  <Inbox className="h-6 w-6" />
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-2xl bg-[#0F2C59]/10 text-[#0F2C59] flex items-center justify-center">
-                <Inbox className="h-6 w-6" />
-              </div>
-            </div>
 
-            {/* Pending Requests */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-600">
-                  Demandes en attente
-                </span>
-                <h3 className="text-2xl font-black font-display text-amber-700 mt-1">
-                  {stats?.newRequests ?? pendingCount}
-                </h3>
-                <span className="text-[11px] text-slate-500 mt-1 block">
-                  À traiter par le secrétariat
-                </span>
+              {/* Pending Requests */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-600">
+                    Demandes en attente
+                  </span>
+                  <h3 className="text-2xl font-black font-display text-amber-700 mt-1">
+                    {stats?.newRequests ?? pendingCount}
+                  </h3>
+                  <span className="text-[11px] text-slate-500 mt-1 block">
+                    À traiter par le secrétariat
+                  </span>
+                </div>
+                <div className="h-12 w-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Clock className="h-6 w-6" />
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <Clock className="h-6 w-6" />
-              </div>
-            </div>
 
-            {/* Document Requests */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
-                  Documents d'église
-                </span>
-                <h3 className="text-2xl font-black font-display text-indigo-900 mt-1">
-                  {stats?.documentRequests ?? submissions.filter(s => s.category === 'Document Requests').length}
-                </h3>
-                <span className="text-[11px] text-indigo-600 font-medium mt-1 block">
-                  {pendingDocsCount} nouveau(x) à certifier
-                </span>
+              {/* Document Requests */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+                    Documents d'église
+                  </span>
+                  <h3 className="text-2xl font-black font-display text-indigo-900 mt-1">
+                    {stats?.documentRequests ?? submissions.filter(s => s.category === 'Document Requests').length}
+                  </h3>
+                  <span className="text-[11px] text-indigo-600 font-medium mt-1 block">
+                    {pendingDocsCount} nouveau(x) à certifier
+                  </span>
+                </div>
+                <div className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <FileText className="h-6 w-6" />
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                <FileText className="h-6 w-6" />
-              </div>
-            </div>
 
-            {/* Newsletter Subscribers */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">
-                  Abonnés Newsletter
-                </span>
-                <h3 className="text-2xl font-black font-display text-emerald-900 mt-1">
-                  {stats?.newsletterSubscribers ?? subscribers.length}
-                </h3>
-                <span className="text-[11px] text-slate-500 mt-1 block">
-                  Fidèles & sympathisants
-                </span>
-              </div>
-              <div className="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <Mail className="h-6 w-6" />
+              {/* Newsletter Subscribers */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">
+                    Abonnés Newsletter
+                  </span>
+                  <h3 className="text-2xl font-black font-display text-emerald-900 mt-1">
+                    {stats?.newsletterSubscribers ?? subscribers.length}
+                  </h3>
+                  <span className="text-[11px] text-slate-500 mt-1 block">
+                    Fidèles & sympathisants
+                  </span>
+                </div>
+                <div className="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <Mail className="h-6 w-6" />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* 2. Submissions Table & Filter Controls (for Forms, Documents, Prayers, Events, or Overview) */}
-          {activeTab !== 'newsletter' && (
+          {activeTab !== 'newsletter' && activeTab !== 'podcasts' && activeTab !== 'security' && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
               
               {/* Filter and Search Bar */}
@@ -1482,6 +1598,245 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
               </div>
 
+            </div>
+          )}
+
+          {/* 5. Paramètres de Sécurité (Security Settings) */}
+          {activeTab === 'security' && (
+            <div id="admin-security-settings" className="space-y-6 max-w-4xl">
+              {/* Alert notifications */}
+              {securitySuccess && (
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                    <p className="text-xs font-semibold">{securitySuccess}</p>
+                  </div>
+                  <button
+                    onClick={() => setSecuritySuccess(null)}
+                    className="text-emerald-700 hover:text-emerald-900 p-1 text-xs cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {securityError && (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-between shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
+                    <p className="text-xs font-semibold">{securityError}</p>
+                  </div>
+                  <button
+                    onClick={() => setSecurityError(null)}
+                    className="text-rose-700 hover:text-rose-900 p-1 text-xs cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* Header Card */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-14 w-14 rounded-2xl bg-[#0F2C59]/10 text-[#0F2C59] flex items-center justify-center shrink-0">
+                    <ShieldCheck className="h-8 w-8 text-[#0F2C59]" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#D4AF37] block">
+                      Sécurité & Authentification
+                    </span>
+                    <h3 className="text-xl font-bold font-display text-slate-900">
+                      Paramètres de Sécurité du Secrétariat
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Gestion du code d'accès confidentiel et procédures de récupération d'urgence.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Session sécurisée active
+                  </span>
+                </div>
+              </div>
+
+              {/* Main Settings Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Form column (2 cols) */}
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                  <div className="p-5 border-b border-slate-200 bg-slate-50/60 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Key className="h-4 w-4 text-[#D4AF37]" />
+                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                        Modifier le code d'accès administrateur
+                      </h4>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      Sauvegarde locale & serveur
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleUpdatePasscode} className="p-6 space-y-4">
+                    {/* Old passcode */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Ancien code d'accès actuel <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Lock className="h-4 w-4 text-slate-400 absolute left-3 top-3" />
+                        <input
+                          type={showOldPass ? "text" : "password"}
+                          required
+                          value={oldPasscode}
+                          onChange={(e) => setOldPasscode(e.target.value)}
+                          placeholder="Saisissez votre code actuel (ex: 123456)"
+                          className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-[#0F2C59] outline-none font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowOldPass(!showOldPass)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          title={showOldPass ? "Masquer" : "Afficher"}
+                        >
+                          {showOldPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* New passcode */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Nouveau code d'accès secret <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Key className="h-4 w-4 text-slate-400 absolute left-3 top-3" />
+                        <input
+                          type={showNewPass ? "text" : "password"}
+                          required
+                          value={newPasscode}
+                          onChange={(e) => setNewPasscode(e.target.value)}
+                          placeholder="Minimum 4 caractères"
+                          className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-[#0F2C59] outline-none font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPass(!showNewPass)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          title={showNewPass ? "Masquer" : "Afficher"}
+                        >
+                          {showNewPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirm new passcode */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Confirmer le nouveau code d'accès <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Key className="h-4 w-4 text-slate-400 absolute left-3 top-3" />
+                        <input
+                          type={showConfirmPass ? "text" : "password"}
+                          required
+                          value={confirmPasscode}
+                          onChange={(e) => setConfirmPasscode(e.target.value)}
+                          placeholder="Répétez exactement le nouveau code"
+                          className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-[#0F2C59] outline-none font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPass(!showConfirmPass)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          title={showConfirmPass ? "Masquer" : "Afficher"}
+                        >
+                          {showConfirmPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={securityLoading}
+                        className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#0F2C59] hover:bg-[#1A365D] text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+                      >
+                        {securityLoading ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            <span>Enregistrement en cours...</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />
+                            <span>Enregistrer le nouveau code d'accès</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Info & Recovery column (1 col) */}
+                <div className="space-y-6">
+                  {/* Current status card */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+                    <div className="flex items-center gap-2 text-slate-800 font-bold text-xs uppercase tracking-wider">
+                      <Lock className="h-4 w-4 text-[#D4AF37]" />
+                      <span>État du code d'accès</span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                      <span className="text-[11px] text-slate-500 block">Code actuellement actif :</span>
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-sm font-bold text-slate-900 tracking-wider">
+                          {showCurrentCode ? activePasscode : '••••••••'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentCode(!showCurrentCode)}
+                          className="text-xs text-slate-500 hover:text-slate-800 cursor-pointer flex items-center gap-1 font-medium"
+                        >
+                          {showCurrentCode ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          <span>{showCurrentCode ? 'Masquer' : 'Révéler'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-slate-600 leading-relaxed space-y-1">
+                      <p>• Code initial par défaut : <strong className="font-mono text-slate-900">{DEFAULT_ADMIN_PASSCODE}</strong></p>
+                      <p>• Enregistré en mémoire permanente (<span className="font-mono text-slate-800">localStorage</span>) pour vos futures connexions.</p>
+                    </div>
+                  </div>
+
+                  {/* Emergency Recovery info card */}
+                  <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 shadow-xs space-y-3">
+                    <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider">
+                      <RotateCcw className="h-4 w-4 text-amber-700" />
+                      <span>Récupération d'urgence</span>
+                    </div>
+
+                    <p className="text-[11px] text-amber-900/90 leading-relaxed">
+                      En cas d'oubli ou de perte de code, l'accès peut être réinitialisé à <strong className="font-mono font-bold">{DEFAULT_ADMIN_PASSCODE}</strong> via le lien « Mot de passe oublié ? » sur la page de connexion, à l'aide de l'e-mail officiel :
+                    </p>
+
+                    <div className="p-2.5 rounded-lg bg-white border border-amber-200 text-xs font-mono font-bold text-slate-800 break-all select-all">
+                      {ADMIN_RECOVERY_EMAIL}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleResetToDefaultCode}
+                      disabled={securityLoading}
+                      className="w-full py-2 px-3 rounded-xl border border-amber-300 hover:bg-amber-100 text-amber-900 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      <span>Rétablir le code par défaut ({DEFAULT_ADMIN_PASSCODE})</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

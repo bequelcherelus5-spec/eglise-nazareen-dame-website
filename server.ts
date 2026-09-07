@@ -1,5 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
+import fs from 'fs';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { dbSubmissions, dbSubscribers, dbCampaigns, dbPodcasts, SubmissionCategory, SubmissionStatus } from './server/db';
@@ -14,15 +15,50 @@ const PORT = 3000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Admin credentials: supports 'Bequel' and 'Secretaire' with 'Bequel1974' (as specified in prompt) as well as environment variables
+// Admin credentials & Security configuration
+const ADMIN_RECOVERY_EMAIL = 'eglisedunazareendedame@gmail.com';
+const DEFAULT_ADMIN_PASSCODE = '123456';
+const SECURITY_FILE = path.join(process.cwd(), 'data', 'security.json');
+
+let currentAdminPasscode = DEFAULT_ADMIN_PASSCODE;
+try {
+  if (fs.existsSync(SECURITY_FILE)) {
+    const raw = fs.readFileSync(SECURITY_FILE, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (parsed.adminPasscode && typeof parsed.adminPasscode === 'string') {
+      currentAdminPasscode = parsed.adminPasscode.trim();
+    }
+  }
+} catch (e) {
+  console.warn('Could not read security.json, using default passcode:', e);
+}
+
+function persistAdminPasscode(passcode: string): void {
+  try {
+    const dir = path.join(process.cwd(), 'data');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      SECURITY_FILE,
+      JSON.stringify({ adminPasscode: passcode, updatedAt: new Date().toISOString() }, null, 2),
+      'utf-8'
+    );
+  } catch (err) {
+    console.error('Error saving security file:', err);
+  }
+}
+
 const ALLOWED_ADMIN_USERS = [
   'bequel', 
   'secretaire', 
   'bequel cherelus',
+  'admin',
+  'pasteur',
+  'eglisedunazareendedame@gmail.com',
   (process.env.ADMIN_USERNAME || '').toLowerCase()
 ].filter(Boolean);
 
 const ALLOWED_ADMIN_PASSWORDS = [
+  '123456',
   'Bequel1974',
   process.env.ADMIN_PASSWORD || ''
 ].filter(Boolean);
@@ -87,9 +123,11 @@ app.post('/api/admin/login', (req: Request, res: Response) => {
   const cleanUser = String(username).trim();
   const cleanPass = String(password).trim();
 
-  // Validate securely: allows 'Bequel' and 'Secretaire' with 'Bequel1974'
+  // Validate securely: allows configured users, and validates passcode against current code or default 123456
   const isUserValid = ALLOWED_ADMIN_USERS.includes(cleanUser.toLowerCase());
-  const isPassValid = ALLOWED_ADMIN_PASSWORDS.includes(cleanPass);
+  const isPassValid = 
+    cleanPass === currentAdminPasscode || 
+    ALLOWED_ADMIN_PASSWORDS.includes(cleanPass);
 
   if (isUserValid && isPassValid) {
     const token = createSessionToken(cleanUser);
@@ -105,9 +143,68 @@ app.post('/api/admin/login', (req: Request, res: Response) => {
   } else {
     // Delay slightly to mitigate brute-force
     setTimeout(() => {
-      res.status(401).json({ success: false, error: 'Identifiant ou mot de passe incorrect.' });
+      res.status(401).json({ success: false, error: 'Identifiant ou code d’accès incorrect.' });
     }, 400);
   }
+});
+
+// Admin Reset Passcode (Mot de passe oublié avec email institutionnel)
+app.post('/api/admin/reset-code', (req: Request, res: Response) => {
+  const { email } = req.body;
+  const cleanEmail = String(email || '').trim().toLowerCase();
+
+  if (!cleanEmail) {
+    res.status(400).json({ success: false, error: 'Veuillez renseigner votre adresse e-mail.' });
+    return;
+  }
+
+  if (cleanEmail !== ADMIN_RECOVERY_EMAIL.toLowerCase()) {
+    res.status(403).json({
+      success: false,
+      error: `Adresse non autorisée. Seule l'adresse officielle de l'Église (${ADMIN_RECOVERY_EMAIL}) est autorisée.`
+    });
+    return;
+  }
+
+  // Reset to initial default passcode 123456
+  currentAdminPasscode = DEFAULT_ADMIN_PASSCODE;
+  persistAdminPasscode(currentAdminPasscode);
+
+  res.json({
+    success: true,
+    message: `Le code d'accès administrateur a été réinitialisé avec succès au code par défaut : ${DEFAULT_ADMIN_PASSCODE}.`
+  });
+});
+
+// Admin Change Passcode (Paramètres de sécurité)
+app.post('/api/admin/change-code', (req: Request, res: Response) => {
+  const { oldCode, newCode } = req.body;
+  const cleanOld = String(oldCode || '').trim();
+  const cleanNew = String(newCode || '').trim();
+
+  if (!cleanOld || !cleanNew) {
+    res.status(400).json({ success: false, error: 'Veuillez saisir l\'ancien et le nouveau code.' });
+    return;
+  }
+
+  if (cleanNew.length < 4) {
+    res.status(400).json({ success: false, error: 'Le nouveau code doit comporter au moins 4 caractères.' });
+    return;
+  }
+
+  const isOldValid = cleanOld === currentAdminPasscode || ALLOWED_ADMIN_PASSWORDS.includes(cleanOld);
+  if (!isOldValid) {
+    res.status(401).json({ success: false, error: 'L\'ancien code d\'accès est incorrect.' });
+    return;
+  }
+
+  currentAdminPasscode = cleanNew;
+  persistAdminPasscode(cleanNew);
+
+  res.json({
+    success: true,
+    message: 'Votre code d\'accès administrateur a été mis à jour avec succès.'
+  });
 });
 
 // Admin Verify Session
