@@ -29,7 +29,7 @@ export const GRADE_LEVELS = [
   { level: 6, label: '6ème AF', cycle: 2, name: '6ème Année Fondamentale (Fin 2e cycle)', age: '11-12 ans', color: 'from-orange-500 to-rose-500' },
   { level: 7, label: '7ème AF', cycle: 3, name: '7ème Année Fondamentale', age: '12-13 ans', color: 'from-purple-500 to-indigo-600' },
   { level: 8, label: '8ème AF', cycle: 3, name: '8ème Année Fondamentale', age: '13-14 ans', color: 'from-indigo-600 to-blue-700' },
-  { level: 9, label: '9ème AF', cycle: 3, name: '9ème AF (Brevet d\'État MENFP)', age: '14-15+ ans', color: 'from-[#0F2C59] to-[#D4AF37]' },
+  { level: 9, label: '9ème AF', cycle: 3, name: '9ème AF (Brevet d\'État)', age: '14-15+ ans', color: 'from-[#0F2C59] to-[#D4AF37]' },
 ];
 
 export const EDU_QUESTIONS: EduQuestion[] = [
@@ -438,7 +438,7 @@ export const EDU_QUESTIONS: EduQuestion[] = [
     hint: 'Faire les lois, exécuter les lois, juger selon les lois.'
   },
 
-  // ================= 9ème ANNÉE FONDAMENTALE (9ème AF - Brevet d'État MENFP) =================
+  // ================= 9ème ANNÉE FONDAMENTALE (9ème AF - Brevet d'État) =================
   {
     id: 'q9-1',
     gradeLevel: 9,
@@ -460,7 +460,7 @@ export const EDU_QUESTIONS: EduQuestion[] = [
     question: 'Un commerçant de Môle-Saint-Nicolas accorde une réduction de 15% sur un article valant 2 000 gourdes. Quel est le montant payé ?',
     options: ['1 700 gourdes', '1 850 gourdes', '1 500 gourdes', '1 600 gourdes'],
     correctIndex: 0,
-    explanation: 'Montant de la réduction : 2 000 x 0,15 = 300 gourdes. Prix final = 2 000 - 300 = 1 700 gourdes (ou 2 000 x 0,85 = 1 700 gourdes). Question type des examens officiels du MENFP.',
+    explanation: 'Montant de la réduction : 2 000 x 0,15 = 300 gourdes. Prix final = 2 000 - 300 = 1 700 gourdes (ou 2 000 x 0,85 = 1 700 gourdes). Question type des examens officiels.',
     hint: '10% de 2000 = 200 gourdes, 5% = 100 gourdes. La réduction totale est de 300 gourdes.'
   },
   {
@@ -477,7 +477,7 @@ export const EDU_QUESTIONS: EduQuestion[] = [
       'Les lettres qu\'il ont écrite sont bien rédigé.'
     ],
     correctIndex: 0,
-    explanation: 'Règle officielle du MENFP : Avec l\'auxiliaire "avoir", le participe passé s\'accorde en genre et en nombre avec le COD s\'il est placé avant le verbe. Le COD "que" (mis pour "les lettres", féminin pluriel) est placé avant "a écrites", donc accord : "écrites".',
+    explanation: 'Règle officielle : Avec l\'auxiliaire "avoir", le participe passé s\'accorde en genre et en nombre avec le COD s\'il est placé avant le verbe. Le COD "que" (mis pour "les lettres", féminin pluriel) est placé avant "a écrites", donc accord : "écrites".',
     hint: 'Le COD "les lettres" est placé AVANT le verbe avoir.'
   },
   {

@@ -73,6 +73,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
         'admin', 
         'pasteur', 
         'bequel cherelus',
+        'nom de l\'église secrétaire',
+        'nom de l\'eglise secretaire',
+        'eglise du nazareen de dame secretaire',
+        'eglise du nazareen de dame',
+        'secretaire dame',
         'eglisedunazareendedame@gmail.com'
       ].includes(normalizedUser);
 

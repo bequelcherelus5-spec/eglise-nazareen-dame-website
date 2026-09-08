@@ -71,7 +71,7 @@ export const EducationView: React.FC<EducationViewProps> = ({
               className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 text-white px-4 py-3 text-xs sm:text-sm font-semibold transition-colors border border-white/20"
             >
               <FileText className="h-4 w-4 text-[#D4AF37]" />
-              Préparation Examens MENFP
+              Préparation Examens Officiels
             </a>
           </div>
         </div>
@@ -100,7 +100,7 @@ export const EducationView: React.FC<EducationViewProps> = ({
               <div className="space-y-2 text-xs text-slate-700 pt-2">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span>Cycle fondamental complet agréé par le MENFP</span>
+                  <span>Cycle fondamental complet d'excellence</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
@@ -129,7 +129,7 @@ export const EducationView: React.FC<EducationViewProps> = ({
                   className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#D4AF37] text-[#0F2C59] hover:bg-[#B38E22] text-xs font-bold transition-colors shadow-sm"
                 >
                   <GraduationCap className="h-3.5 w-3.5" />
-                  <span>Examens MENFP</span>
+                  <span>Examens Officiels</span>
                 </a>
               </div>
             </div>
@@ -241,7 +241,7 @@ export const EducationView: React.FC<EducationViewProps> = ({
         <NazarethEduGames />
       </section>
 
-      {/* Section 2 Demandée : Plateforme de Préparation aux Examens Officiels (MENFP) */}
+      {/* Section 2 Demandée : Plateforme de Préparation aux Examens Officiels */}
       <section id="preparation-examens" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-20">
         <ExamPrepPlatform />
       </section>

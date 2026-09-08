@@ -155,7 +155,16 @@ export type SubmissionCategory =
   | 'Newsletter Subscribers'
   | 'General Requests';
 
-export type SubmissionStatus = 'New' | 'In progress' | 'Completed' | 'Archived';
+export type SubmissionStatus = 
+  | 'En attente' 
+  | 'En cours' 
+  | 'Approuvée' 
+  | 'Refusée' 
+  | 'Terminée' 
+  | 'New' 
+  | 'In progress' 
+  | 'Completed' 
+  | 'Archived';
 
 export interface FormSubmission {
   id: string;
@@ -173,10 +182,47 @@ export interface FormSubmission {
 export interface NewsletterSubscriber {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone?: string;
   subscribedAt: string;
   status: 'Active' | 'Unsubscribed';
+  source?: string;
+}
+
+export type PublicationStatus = 'Brouillon' | 'En attente' | 'Publiée' | 'Archivée';
+
+export interface ChurchPublication {
+  id: string;
+  title: string;
+  content: string;
+  summary: string;
+  image: string;
+  category: string;
+  author: string;
+  date: string;
+  status: PublicationStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type EventStatus = 'Brouillon' | 'Publié' | 'Terminé' | 'Annulé';
+
+export interface ChurchEvent {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  organizer: string;
+  category: string;
+  status: EventStatus;
+  createdAt: string;
+  highlight?: boolean;
 }
 
 export type PodcastCategory = 'Prédication' | 'Étude biblique' | 'Enseignement' | 'Témoignage';
@@ -214,6 +260,17 @@ export interface AdminStats {
   documentRequests: number;
   newDocumentRequests: number;
   newsletterSubscribers: number;
+  totalSubscribers: number;
+  demandesEnAttente: number;
+  demandesApprouvees: number;
+  demandesEnCours: number;
+  demandesRefusees: number;
+  demandesTerminees: number;
+  totalEvents: number;
+  publishedEvents: number;
+  publicationsEnAttente: number;
+  publicationsPubliees: number;
+  podcastsCount: number;
   byCategory: {
     prayer: number;
     contact: number;

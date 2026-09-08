@@ -54,8 +54,11 @@ import {
   Music,
   Key,
   Lock,
-  RotateCcw
+  RotateCcw,
+  BookOpen
 } from 'lucide-react';
+import { PublicationsManager } from './PublicationsManager';
+import { EventsManager } from './EventsManager';
 
 interface AdminDashboardProps {
   currentUser: AdminUser;
@@ -70,6 +73,7 @@ type DashboardTab =
   | 'prayers' 
   | 'newsletter' 
   | 'events'
+  | 'publications'
   | 'podcasts'
   | 'security';
 
@@ -98,6 +102,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
   const [campaigns, setCampaigns] = useState<NewsletterCampaign[]>([]);
   const [podcasts, setPodcasts] = useState<ChurchPodcast[]>([]);
+  const [publicationsCount, setPublicationsCount] = useState<number>(0);
+  const [eventsCount, setEventsCount] = useState<number>(0);
+  const [subscriberSearch, setSubscriberSearch] = useState<string>('');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -145,18 +152,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Load all dashboard data
   const loadData = async () => {
     try {
-      const [subs, nls, cmps, pods, st] = await Promise.all([
+      const [subs, nls, cmps, pods, st, pubs, evts] = await Promise.all([
         apiService.getSubmissions(),
         apiService.getNewsletterSubscribers(),
         apiService.getNewsletterCampaigns(),
         apiService.getPodcasts(),
-        apiService.getAdminStats()
+        apiService.getAdminStats(),
+        apiService.getPublications(true),
+        apiService.getEvents(true)
       ]);
       setSubmissions(subs);
       setSubscribers(nls);
       setCampaigns(cmps);
       setPodcasts(pods);
       setStats(st);
+      setPublicationsCount(pubs.length);
+      setEventsCount(evts.length);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
     } finally {
@@ -177,13 +188,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Status badge styling helper
   const getStatusBadge = (status: SubmissionStatus) => {
     switch (status) {
+      case 'En attente':
       case 'New':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
             <Clock className="h-3 w-3" />
-            Nouveau
+            En attente
           </span>
         );
+      case 'En cours':
       case 'In progress':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
@@ -191,14 +204,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             En cours
           </span>
         );
-      case 'Completed':
+      case 'Approuvée':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
             <CheckCircle2 className="h-3 w-3" />
-            Terminé
+            Approuvée
+          </span>
+        );
+      case 'Refusée':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
+            <X className="h-3 w-3" />
+            Refusée
+          </span>
+        );
+      case 'Terminée':
+      case 'Completed':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100 text-teal-800 border border-teal-200">
+            <CheckCircle2 className="h-3 w-3" />
+            Terminée
           </span>
         );
       case 'Archived':
+      default:
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
             <Archive className="h-3 w-3" />
@@ -268,6 +297,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Export Newsletter CSV
   const handleExportCsv = () => {
     window.open('/api/newsletter/export', '_blank');
+  };
+
+  // Delete Newsletter Subscriber
+  const handleDeleteSubscriber = async (id: string) => {
+    if (!window.confirm('Voulez-vous supprimer cet abonné de la liste de diffusion ?')) return;
+    const ok = await apiService.deleteNewsletterSubscriber(id);
+    if (ok) {
+      setSubscribers(prev => prev.filter(s => s.id !== id));
+      loadData();
+    }
+  };
+
+  // Toggle Newsletter Subscriber Status
+  const handleToggleSubscriberStatus = async (sub: NewsletterSubscriber) => {
+    const nextStatus = sub.status === 'Active' ? 'Unsubscribed' : 'Active';
+    const ok = await apiService.updateNewsletterSubscriber(sub.id, { status: nextStatus });
+    if (ok) {
+      setSubscribers(prev => prev.map(s => s.id === sub.id ? { ...s, status: nextStatus } : s));
+      loadData();
+    }
   };
 
   // Audio File Selection & Processing
@@ -483,7 +532,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       if (activeTab === 'events' && item.category !== 'Event Registration') return false;
 
       // Status filter
-      if (statusFilter !== 'All' && item.status !== statusFilter) return false;
+      if (statusFilter !== 'All') {
+        if (statusFilter === 'En attente') {
+          if (item.status !== 'En attente' && item.status !== 'New') return false;
+        } else if (statusFilter === 'En cours') {
+          if (item.status !== 'En cours' && item.status !== 'In progress') return false;
+        } else if (statusFilter === 'Terminée') {
+          if (item.status !== 'Terminée' && item.status !== 'Completed') return false;
+        } else {
+          if (item.status !== statusFilter) return false;
+        }
+      }
 
       // Search
       if (searchQuery.trim()) {
@@ -500,8 +559,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     });
   }, [submissions, categoryFilter, statusFilter, searchQuery, activeTab]);
 
-  const pendingCount = submissions.filter(s => s.status === 'New').length;
-  const pendingDocsCount = submissions.filter(s => s.category === 'Document Requests' && s.status === 'New').length;
+  const pendingCount = submissions.filter(s => s.status === 'New' || s.status === 'En attente').length;
+  const pendingDocsCount = submissions.filter(s => s.category === 'Document Requests' && (s.status === 'New' || s.status === 'En attente')).length;
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row font-sans text-slate-900">
@@ -614,7 +673,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
 
             <button
-              onClick={() => { setActiveTab('events'); setCategoryFilter('Event Registration'); }}
+              onClick={() => { setActiveTab('events'); }}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                 activeTab === 'events'
                   ? 'bg-[#D4AF37] text-slate-950 font-bold shadow-sm'
@@ -623,10 +682,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             >
               <div className="flex items-center gap-2.5">
                 <Calendar className="h-4 w-4" />
-                <span>Inscriptions Événements</span>
+                <span>Événements & Inscriptions</span>
               </div>
               <span className="text-[10px] opacity-70 font-mono">
-                {submissions.filter(s => s.category === 'Event Registration').length}
+                {eventsCount || submissions.filter(s => s.category === 'Event Registration').length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('publications'); }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === 'publications'
+                  ? 'bg-[#D4AF37] text-slate-950 font-bold shadow-sm'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <BookOpen className="h-4 w-4" />
+                <span>Publications & Actualités</span>
+              </div>
+              <span className="text-[10px] opacity-70 font-mono">
+                {publicationsCount}
               </span>
             </button>
 
@@ -714,7 +790,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {activeTab === 'forms' && "Centre de Gestion des Formulaires"}
                 {activeTab === 'documents' && "Gestion des Demandes de Documents"}
                 {activeTab === 'prayers' && "Registre des Demandes de Prière & Intercession"}
-                {activeTab === 'events' && "Registre des Inscriptions aux Événements"}
+                {activeTab === 'events' && "Gestion des Événements & Inscriptions"}
+                {activeTab === 'publications' && "Gestion des Publications & Actualités"}
                 {activeTab === 'newsletter' && "Système d'Abonnements & Newsletter"}
                 {activeTab === 'podcasts' && "Gestion des Podcasts & Messages Audio"}
                 {activeTab === 'security' && "Paramètres de Sécurité & Code d'Accès"}
@@ -826,8 +903,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          {/* 2. Submissions Table & Filter Controls (for Forms, Documents, Prayers, Events, or Overview) */}
-          {activeTab !== 'newsletter' && activeTab !== 'podcasts' && activeTab !== 'security' && (
+          {/* 2. Submissions Table & Filter Controls (for Forms, Documents, Prayers, or Overview) */}
+          {activeTab !== 'newsletter' && activeTab !== 'podcasts' && activeTab !== 'security' && activeTab !== 'publications' && activeTab !== 'events' && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
               
               {/* Filter and Search Bar */}
@@ -880,9 +957,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     className="px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs focus:ring-2 focus:ring-[#0F2C59] outline-none font-medium"
                   >
                     <option value="All">Tous les statuts</option>
-                    <option value="New">Nouveau (en attente)</option>
-                    <option value="In progress">En traitement</option>
-                    <option value="Completed">Terminé</option>
+                    <option value="En attente">En attente</option>
+                    <option value="En cours">En cours</option>
+                    <option value="Approuvée">Approuvée</option>
+                    <option value="Refusée">Refusée</option>
+                    <option value="Terminée">Terminée</option>
                     <option value="Archived">Archivé</option>
                   </select>
 
@@ -1158,10 +1237,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Subscribers List Card */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-                <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Liste des Abonnés Enregistrés ({subscribers.length})
-                  </span>
+                <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      Liste des Abonnés Enregistrés ({subscribers.length})
+                    </span>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
+                      {subscribers.filter(s => s.status === 'Active').length} actif(s)
+                    </span>
+                  </div>
+
+                  {/* Subscriber Search */}
+                  <div className="relative w-full sm:w-64">
+                    <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      value={subscriberSearch}
+                      onChange={(e) => setSubscriberSearch(e.target.value)}
+                      placeholder="Filtrer par nom ou email..."
+                      className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#0F2C59] outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -1172,20 +1268,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <th className="py-3 px-4">Email</th>
                         <th className="py-3 px-4">Date d'inscription</th>
                         <th className="py-3 px-4">Statut</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs">
-                      {subscribers.map((s) => (
+                      {subscribers
+                        .filter(s => {
+                          if (!subscriberSearch.trim()) return true;
+                          const q = subscriberSearch.toLowerCase();
+                          return s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q);
+                        })
+                        .map((s) => (
                         <tr key={s.id} className="hover:bg-slate-50">
-                          <td className="py-3 px-4 font-bold text-slate-900">{s.name}</td>
+                          <td className="py-3 px-4 font-bold text-slate-900">{s.name || 'Anonyme'}</td>
                           <td className="py-3 px-4 font-mono text-slate-600">{s.email}</td>
                           <td className="py-3 px-4 text-slate-500">
                             {new Date(s.subscribedAt).toLocaleDateString('fr-FR')}
                           </td>
                           <td className="py-3 px-4">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                              {s.status}
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              s.status === 'Active' 
+                                ? 'bg-emerald-100 text-emerald-800' 
+                                : 'bg-slate-200 text-slate-700'
+                            }`}>
+                              {s.status === 'Active' ? 'Actif' : 'Désabonné'}
                             </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleToggleSubscriberStatus(s)}
+                                className="px-2 py-1 rounded text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                title={s.status === 'Active' ? 'Désactiver' : 'Réactiver'}
+                              >
+                                {s.status === 'Active' ? 'Désactiver' : 'Réactiver'}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSubscriber(s.id)}
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                                title="Supprimer cet abonné"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

@@ -362,14 +362,14 @@ export const ExamPrepPlatform: React.FC = () => {
               Préparation aux Examens d'État & Fondamentaux
             </h2>
             <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-              Spécialement conçue pour les élèves de l'École Fondamentale Nazareth et de Damé préparant les épreuves du Ministère de l'Éducation Nationale (MENFP : 9ème AF, 6ème AF et contrôles officiels).
+              Spécialement conçue pour les élèves de l'École Fondamentale Nazareth et de Damé préparant les épreuves officielles (9ème AF, 6ème AF et contrôles d'examen).
             </p>
           </div>
 
           <div className="flex items-center gap-2 bg-white/10 p-3 rounded-2xl border border-white/20 text-center">
             <Award className="h-8 w-8 text-[#D4AF37] shrink-0" />
             <div className="text-left text-xs">
-              <div className="font-bold text-white">Programme Officiel MENFP</div>
+              <div className="font-bold text-white">Programme Officiel d'Examens</div>
               <div className="text-[11px] text-slate-300">Haïti • District Bas Nord-Ouest</div>
             </div>
           </div>
@@ -426,7 +426,7 @@ export const ExamPrepPlatform: React.FC = () => {
                   Choisissez une épreuve d'examen blanc à passer :
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Chaque épreuve contient 5 questions représentatives des examens officiels du MENFP avec compte à rebours et corrigé commenté.
+                  Chaque épreuve contient 5 questions représentatives des examens officiels avec compte à rebours et corrigé commenté.
                 </p>
               </div>
 
@@ -687,7 +687,7 @@ export const ExamPrepPlatform: React.FC = () => {
                 Fiches de Synthèse & Formules Indispensables
               </h3>
               <p className="text-xs text-slate-500">
-                Révisez l'essentiel en un clin d'œil pour aborder les épreuves du MENFP avec confiance.
+                Révisez l'essentiel en un clin d'œil pour aborder les épreuves d'examen avec confiance.
               </p>
             </div>
             <button
@@ -847,7 +847,7 @@ export const ExamPrepPlatform: React.FC = () => {
             </div>
             <div>
               <h3 className="text-lg font-bold font-display text-[#0F2C59]">
-                5 Règles d'Or pour Réussir son Examen d'État (MENFP)
+                5 Règles d'Or pour Réussir son Examen d'État
               </h3>
               <p className="text-xs text-slate-500">
                 Conseils méthodologiques des enseignants de l'École Nazareth pour maximiser vos points.

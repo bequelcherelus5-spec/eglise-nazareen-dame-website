@@ -13,7 +13,7 @@ export interface ExamPaper {
   id: string;
   title: string;
   subject: string;
-  targetLevel: string; // '9ème Année Fondamentale (MENFP)' | '6ème Année Fondamentale'
+  targetLevel: string; // '9ème Année Fondamentale' | '6ème Année Fondamentale'
   durationMinutes: number;
   totalPoints: number;
   instructions: string[];
@@ -35,9 +35,9 @@ export const EXAM_PAPERS: ExamPaper[] = [
   // ================= EXAMEN TYPE 9ème AF : MATHÉMATIQUES =================
   {
     id: 'exam-9af-maths-1',
-    title: 'Épreuve Blanche Officielle de Mathématiques — Type MENFP',
+    title: 'Épreuve Blanche Officielle de Mathématiques',
     subject: 'Mathématiques',
-    targetLevel: '9ème Année Fondamentale (MENFP)',
+    targetLevel: '9ème Année Fondamentale',
     durationMinutes: 45,
     totalPoints: 100,
     instructions: [
@@ -54,7 +54,7 @@ export const EXAM_PAPERS: ExamPaper[] = [
         options: ['2', '10/8', '5/4', '8/5'],
         correctIndex: 0,
         detailedSolution: 'Étape 1 : Mettre au même dénominateur dans la parenthèse : 3/4 + 1/2 = 3/4 + 2/4 = 5/4.\nÉtape 2 : Diviser par une fraction revient à multiplier par son inverse : (5/4) ÷ (5/8) = (5/4) x (8/5) = (5 x 8) / (4 x 5) = 40 / 20 = 2.',
-        examTip: 'Rappel MENFP : Toujours effectuer les calculs entre parenthèses en premier et simplifier avant de multiplier.'
+        examTip: 'Conseil d\'examen : Toujours effectuer les calculs entre parenthèses en premier et simplifier avant de multiplier.'
       },
       {
         id: 'em-2',
@@ -109,7 +109,7 @@ export const EXAM_PAPERS: ExamPaper[] = [
     id: 'exam-9af-francais-1',
     title: 'Épreuve Blanche de Communication Française — Type 9ème AF',
     subject: 'Français',
-    targetLevel: '9ème Année Fondamentale (MENFP)',
+    targetLevel: '9ème Année Fondamentale',
     durationMinutes: 45,
     totalPoints: 100,
     instructions: [
@@ -130,8 +130,8 @@ export const EXAM_PAPERS: ExamPaper[] = [
           'Ils ont mangé des mangues bien mûres.'
         ],
         correctIndex: 0,
-        detailedSolution: 'Dans la phrase « Elles se sont lavé les mains », le verbe est pronominal. Le COD est « les mains », placé APRÈS le verbe. Le participe passé reste donc invariable : « lavé » (et non lavées). Par contre, l\'option 0 était formulée avec l\'accord correct. Voyons les règles MENFP : quand le COD est après un verbe pronominal réfléchi, pas d\'accord !',
-        examTip: 'Piège d\'or aux examens du MENFP : Pour les verbes pronominaux, cherche TOUJOURS si le COD est placé avant ou après.'
+        detailedSolution: 'Dans la phrase « Elles se sont lavé les mains », le verbe est pronominal. Le COD est « les mains », placé APRÈS le verbe. Le participe passé reste donc invariable : « lavé » (et non lavées). Par contre, l\'option 0 était formulée avec l\'accord correct. Règle clé : quand le COD est après un verbe pronominal réfléchi, pas d\'accord !',
+        examTip: 'Piège classique aux examens : Pour les verbes pronominaux, cherche TOUJOURS si le COD est placé avant ou après.'
       },
       {
         id: 'ef-2',
@@ -171,7 +171,7 @@ export const EXAM_PAPERS: ExamPaper[] = [
     id: 'exam-9af-histoire-1',
     title: 'Épreuve Blanche de Sciences Sociales (Histoire, Géographie & Civisme) — 9ème AF',
     subject: 'Sciences Sociales',
-    targetLevel: '9ème Année Fondamentale (MENFP)',
+    targetLevel: '9ème Année Fondamentale',
     durationMinutes: 45,
     totalPoints: 100,
     instructions: [
@@ -192,7 +192,7 @@ export const EXAM_PAPERS: ExamPaper[] = [
         ],
         correctIndex: 0,
         detailedSolution: '14 août 1791 (Cérémonie du Bois-Caïman) -> 18 mai 1803 (Congrès de l\'Arcahaie et création du drapeau) -> 18 novembre 1803 (Victoire de Vertières) -> 1er janvier 1804 (Acte de l\'Indépendance aux Gonaïves).',
-        examTip: 'Question incontournable des épreuves du MENFP. Apprenez cette chronologie par cœur.'
+        examTip: 'Question incontournable des épreuves officielles. Apprenez cette chronologie par cœur.'
       },
       {
         id: 'eh-2',
@@ -271,7 +271,7 @@ export const REVISION_SHEETS: RevisionSheet[] = [
     subject: 'Histoire d\'Haïti',
     level: '6ème à 9ème AF',
     badge: 'Histoire Nationale',
-    summary: 'Chronologie complète des dates incontournables demandées par le MENFP.',
+    summary: 'Chronologie complète des dates incontournables demandées aux examens.',
     keyPoints: [
       {
         label: '6 décembre 1492',
@@ -363,7 +363,7 @@ export const EXAM_METHODOLOGY_TIPS = [
     icon: 'FileText',
     tips: [
       'Encadrez vos résultats finaux en mathématiques et précisez toujours l\'unité (gourdes, cm, m², heures).',
-      'Écrivez lisiblement avec une écriture soignée : le correcteur du MENFP apprécie une copie aérée et propre.',
+      'Écrivez lisiblement avec une écriture soignée : le correcteur apprécie une copie aérée et propre.',
       'Sautez une ligne entre chaque question pour faciliter la lecture.'
     ]
   },

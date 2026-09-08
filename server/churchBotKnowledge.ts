@@ -38,7 +38,7 @@ LES MINISTÈRES & DÉPARTEMENTS :
 5. Ministère Féminin & Hommes Nazaréens
 
 PÔLE ÉDUCATIF :
-1. École Fondamentale Nazareth (fondée en 1985) : Enseignement fondamental complet de la 1ère à la 9ème Année Fondamentale (AF), section jeux éducatifs et plateforme de préparation aux examens officiels d'État (MENFP).
+1. École Fondamentale Nazareth (fondée en 1985) : Enseignement fondamental complet de la 1ère à la 9ème Année Fondamentale (AF), section jeux éducatifs et plateforme de préparation aux examens officiels d'État.
 2. École Professionnelle EPND (fondée en 2022) : Formations professionnelles pratiques en Couture, Maçonnerie, Musique instrumentale et Anglais pratique.
 
 SOUTIEN, PRIÈRES & DONS :
@@ -129,7 +129,7 @@ La devise immuable de notre église est : **« Sainteté à l’Éternel »** !`
 1. **École Fondamentale Nazareth (fondée en 1985)** :
 • Accueille les élèves de la **1ère à la 9ème Année Fondamentale (AF)**.
 • Nouveau : Section **Jeux Éducatifs interactifs** par classe (Maths, Français, Sciences, Histoire d'Haïti).
-• Nouveau : **Plateforme de Préparation aux Examens d'État (MENFP)** avec simulateurs d'examens blancs, fiches de révision et corrigés détaillés.
+• Nouveau : **Plateforme de Préparation aux Examens d'État** avec simulateurs d'examens blancs, fiches de révision et corrigés détaillés.
 
 2. **École Professionnelle Nazaréen de Damé (EPND - 2022)** :
 • **Couture & Stylisme** (12 mois)

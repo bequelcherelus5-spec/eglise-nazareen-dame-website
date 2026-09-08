@@ -4,7 +4,16 @@ import fs from 'fs';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
-import { dbSubmissions, dbSubscribers, dbCampaigns, dbPodcasts, SubmissionCategory, SubmissionStatus } from './server/db';
+import { 
+  dbSubmissions, 
+  dbSubscribers, 
+  dbCampaigns, 
+  dbPodcasts, 
+  dbPublications, 
+  dbEvents, 
+  SubmissionCategory, 
+  SubmissionStatus 
+} from './server/db';
 import { CHURCH_SYSTEM_PROMPT, getLocalAssistantReply } from './server/churchBotKnowledge';
 import { createServer as createViteServer } from 'vite';
 
@@ -66,6 +75,10 @@ const ALLOWED_ADMIN_USERS = [
   'bequel cherelus',
   'admin',
   'pasteur',
+  'nom de l\'église secrétaire',
+  'nom de l\'eglise secretaire',
+  'eglise du nazareen de dame secretaire',
+  'eglise du nazareen de dame',
   'eglisedunazareendedame@gmail.com',
   (process.env.ADMIN_USERNAME || '').toLowerCase()
 ].filter(Boolean);
@@ -292,25 +305,67 @@ app.post('/api/submissions', (req: Request, res: Response) => {
 // Public Newsletter Subscription
 app.post('/api/newsletter/subscribe', (req: Request, res: Response) => {
   try {
-    const { name, email, phone } = req.body;
+    const { name, email, phone, firstName, lastName } = req.body;
 
-    if (!email || !email.includes('@')) {
-      res.status(400).json({ success: false, error: 'Adresse email invalide.' });
+    if (!email || !String(email).includes('@')) {
+      res.status(400).json({ success: false, error: 'Adresse e-mail invalide. Veuillez saisir un e-mail valide (ex: nom@domaine.com).' });
       return;
     }
 
-    const result = dbSubscribers.add(name || 'Abonné Paroisse', email, phone);
+    const result = dbSubscribers.add(
+      name || '',
+      String(email).trim().toLowerCase(),
+      phone ? String(phone).trim() : undefined,
+      firstName ? String(firstName).trim() : undefined,
+      lastName ? String(lastName).trim() : undefined
+    );
+
+    let message = 'Merci pour votre inscription à la newsletter paroissiale !';
+    if (result.alreadyActive) {
+      message = 'Vous êtes déjà inscrit à la newsletter de l’Église avec cette adresse.';
+    } else if (result.reactivated) {
+      message = 'Votre réinscription à la newsletter a été prise en compte avec succès !';
+    }
 
     res.json({
       success: true,
-      message: result.isNew 
-        ? 'Merci pour votre inscription à la newsletter paroissiale !' 
-        : 'Vous êtes déjà inscrit à la newsletter de l’Église.',
+      message,
+      isNew: result.isNew,
+      reactivated: result.reactivated,
+      alreadyActive: result.alreadyActive,
       subscriber: result.subscriber
     });
   } catch (err) {
     console.error('Error subscribing newsletter:', err);
     res.status(500).json({ success: false, error: 'Erreur lors de l’inscription à la newsletter.' });
+  }
+});
+
+// Public Publications List
+app.get('/api/publications', (req: Request, res: Response) => {
+  try {
+    const includeDrafts = req.query.includeDrafts === 'true';
+    const category = req.query.category ? String(req.query.category) : undefined;
+    const search = req.query.search ? String(req.query.search) : undefined;
+    const publications = dbPublications.getAll(includeDrafts, category, search);
+    res.json({ success: true, count: publications.length, publications });
+  } catch (err) {
+    console.error('Error fetching publications:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la récupération des publications.' });
+  }
+});
+
+// Public Events List
+app.get('/api/events', (req: Request, res: Response) => {
+  try {
+    const includeDrafts = req.query.includeDrafts === 'true';
+    const category = req.query.category ? String(req.query.category) : undefined;
+    const search = req.query.search ? String(req.query.search) : undefined;
+    const events = dbEvents.getAll(includeDrafts, category, search);
+    res.json({ success: true, count: events.length, events });
+  } catch (err) {
+    console.error('Error fetching events:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la récupération des événements.' });
   }
 });
 
@@ -427,11 +482,12 @@ app.patch('/api/submissions/:id', requireAdminAuth, (req: Request, res: Response
 
     if (status) {
       const validStatuses = [
+        'En attente', 'En cours', 'Approuvée', 'Refusée', 'Terminée',
         'New', 'In progress', 'Completed', 'Archived',
-        'Nouvelle demande', 'En traitement', 'Document prêt', 'Terminée', 'Archivée'
+        'Nouvelle demande', 'En traitement', 'Document prêt', 'Archivée'
       ];
       if (!validStatuses.includes(status)) {
-        res.status(400).json({ success: false, error: 'Statut invalide.' });
+        res.status(400).json({ success: false, error: 'Statut invalide. Utilisez : En attente, En cours, Approuvée, Refusée, ou Terminée.' });
         return;
       }
       updates.status = status;
@@ -443,11 +499,11 @@ app.patch('/api/submissions/:id', requireAdminAuth, (req: Request, res: Response
 
     const updated = dbSubmissions.update(req.params.id, updates);
     if (!updated) {
-      res.status(404).json({ success: false, error: 'Formulaire non trouvé.' });
+      res.status(404).json({ success: false, error: 'Demande non trouvée.' });
       return;
     }
 
-    res.json({ success: true, item: updated });
+    res.json({ success: true, item: updated, message: 'Demande mise à jour avec succès.' });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Erreur lors de la mise à jour.' });
   }
@@ -476,10 +532,44 @@ app.get('/api/admin/stats', requireAdminAuth, (req: Request, res: Response) => {
 // Admin Newsletter Subscribers List
 app.get('/api/newsletter/subscribers', requireAdminAuth, (req: Request, res: Response) => {
   try {
-    const subscribers = dbSubscribers.getAll();
+    const search = req.query.search ? String(req.query.search) : undefined;
+    const subscribers = dbSubscribers.getAll(search);
     res.json({ success: true, count: subscribers.length, subscribers });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Erreur lors de la récupération des abonnés.' });
+  }
+});
+
+// Admin Update Subscriber Status
+app.patch('/api/newsletter/subscribers/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { status } = req.body;
+    if (status !== 'Active' && status !== 'Unsubscribed') {
+      res.status(400).json({ success: false, error: 'Statut invalide. Utilisez "Active" ou "Unsubscribed".' });
+      return;
+    }
+    const updated = dbSubscribers.updateStatus(req.params.id, status);
+    if (!updated) {
+      res.status(404).json({ success: false, error: 'Abonné introuvable.' });
+      return;
+    }
+    res.json({ success: true, subscriber: updated, message: 'Statut mis à jour.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Erreur lors de la mise à jour.' });
+  }
+});
+
+// Admin Delete Subscriber
+app.delete('/api/newsletter/subscribers/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const ok = dbSubscribers.delete(req.params.id);
+    if (!ok) {
+      res.status(404).json({ success: false, error: 'Abonné introuvable.' });
+      return;
+    }
+    res.json({ success: true, message: 'Abonné retiré de la liste avec succès.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Erreur lors de la suppression.' });
   }
 });
 
@@ -574,6 +664,139 @@ app.delete('/api/podcasts/:id', requireAdminAuth, (req: Request, res: Response) 
 });
 
 // ----------------------------------------------------
+// ADMIN PUBLICATIONS CRUD
+// ----------------------------------------------------
+
+app.post('/api/publications', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { title, content, summary, image, category, author, date, status } = req.body;
+    if (!title || !content) {
+      res.status(400).json({ success: false, error: 'Le titre et le contenu sont obligatoires.' });
+      return;
+    }
+
+    const newPub = dbPublications.create({
+      title: String(title).trim(),
+      content: String(content).trim(),
+      summary: summary ? String(summary).trim() : String(content).slice(0, 160) + '...',
+      image: image || '/images/dame_facade.jpg',
+      category: category || 'Général',
+      author: author || 'Secrétariat Paroissial',
+      date: date || new Date().toISOString().split('T')[0],
+      status: status === 'Brouillon' || status === 'En attente' || status === 'Archivée' ? status : 'Publiée'
+    });
+
+    res.status(201).json({ 
+      success: true, 
+      publication: newPub,
+      message: newPub.status === 'Publiée' ? 'Publication mise en ligne avec succès !' : 'Publication enregistrée.'
+    });
+  } catch (err) {
+    console.error('Error creating publication:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la création de la publication.' });
+  }
+});
+
+app.patch('/api/publications/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const updated = dbPublications.update(req.params.id, req.body);
+    if (!updated) {
+      res.status(404).json({ success: false, error: 'Publication introuvable.' });
+      return;
+    }
+    res.json({ 
+      success: true, 
+      publication: updated,
+      message: 'Publication mise à jour avec succès.'
+    });
+  } catch (err) {
+    console.error('Error updating publication:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la mise à jour de la publication.' });
+  }
+});
+
+app.delete('/api/publications/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const ok = dbPublications.delete(req.params.id);
+    if (!ok) {
+      res.status(404).json({ success: false, error: 'Publication introuvable.' });
+      return;
+    }
+    res.json({ success: true, message: 'Publication supprimée avec succès.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Erreur lors de la suppression de la publication.' });
+  }
+});
+
+// ----------------------------------------------------
+// ADMIN EVENTS CRUD
+// ----------------------------------------------------
+
+app.post('/api/events', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { title, description, image, date, startTime, endTime, location, organizer, category, status, highlight } = req.body;
+    if (!title || !description || !date) {
+      res.status(400).json({ success: false, error: 'Titre, description et date sont obligatoires.' });
+      return;
+    }
+
+    const newEvent = dbEvents.create({
+      title: String(title).trim(),
+      description: String(description).trim(),
+      image: image || '/images/dame_facade.jpg',
+      date: String(date).trim(),
+      startTime: startTime || '08:00',
+      endTime: endTime || '12:00',
+      location: location || 'Sanctuaire Principal, Rue Cimetière Damé',
+      organizer: organizer || 'Secrétariat & Conseil Paroissial',
+      category: category || 'Événement Paroissial',
+      status: status === 'Brouillon' || status === 'Terminé' || status === 'Annulé' ? status : 'Publié',
+      highlight: Boolean(highlight)
+    });
+
+    res.status(201).json({ 
+      success: true, 
+      event: newEvent,
+      message: newEvent.status === 'Publié' ? 'Événement publié avec succès !' : 'Événement enregistré comme brouillon.'
+    });
+  } catch (err) {
+    console.error('Error creating event:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la création de l’événement.' });
+  }
+});
+
+app.patch('/api/events/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const updated = dbEvents.update(req.params.id, req.body);
+    if (!updated) {
+      res.status(404).json({ success: false, error: 'Événement introuvable.' });
+      return;
+    }
+    res.json({ 
+      success: true, 
+      event: updated,
+      message: 'Événement mis à jour avec succès.'
+    });
+  } catch (err) {
+    console.error('Error updating event:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la mise à jour de l’événement.' });
+  }
+});
+
+app.delete('/api/events/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const ok = dbEvents.delete(req.params.id);
+    if (!ok) {
+      res.status(404).json({ success: false, error: 'Événement introuvable.' });
+      return;
+    }
+    res.json({ success: true, message: 'Événement supprimé avec succès.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Erreur lors de la suppression de l’événement.' });
+  }
+});
+
+// ----------------------------------------------------
 // ASSISTANT BOT API (Gemini API with Knowledge Fallback)
 // ----------------------------------------------------
 
@@ -608,7 +831,7 @@ MINISTÈRES & DÉPARTEMENTS :
 - Chorale Paroissiale et Groupe de Louange.
 
 VOLET ÉDUCATIF :
-- École Fondamentale Nazareth (fondée en 1985) : scolarité de la 1ère à la 9ème Année Fondamentale (AF) agréée MENFP, formation chrétienne, jeux éducatifs et préparation aux examens officiels.
+- École Fondamentale Nazareth (fondée en 1985) : scolarité de la 1ère à la 9ème Année Fondamentale (AF), formation chrétienne, jeux éducatifs et préparation aux examens officiels.
 - EPND (École Professionnelle Nazaréen de Damé, fondée en 2022) : 4 filières certifiantes pratiques pour l'autonomie des jeunes (Couture et Stylisme, Maçonnerie & Bâtiment parasismique, Musique & Instruments, Anglais Professionnel). Inscriptions ouvertes via le site ou au secrétariat.
 
 PROJETS SOCIAUX & SOLIDARITÉ :
@@ -645,8 +868,8 @@ function getLocalAssistantResponse(userMsg: string): string {
 
   if (msg.includes('ecole') || msg.includes('école') || msg.includes('nazareth') || msg.includes('examen') || msg.includes('fondamentale') || msg.includes('9eme') || msg.includes('9ème')) {
     return `L'**École Fondamentale Nazareth** de Damé, fondée en 1985, accueille les enfants de la **1ère à la 9ème Année Fondamentale (AF)**.\n\n` +
-      `• **Programme officiel MENFP** : un enseignement d'excellence fondé sur les valeurs chrétiennes, morales et civiques.\n` +
-      `• **Jeux Éducatifs & Révisions** : Notre site propose désormais un espace de jeux pédagogiques interactifs pour chaque classe (1ère à 9ème AF) ainsi qu'une plateforme complète de préparation aux examens d'État du Brevet (test blanc avec corrigé détaillé et fiches mémos).\n\n` +
+      `• **Programme officiel d'excellence** : un enseignement rigoureux fondé sur les valeurs chrétiennes, morales et civiques.\n` +
+      `• **Jeux Éducatifs & Révisions** : Notre site propose désormais un espace de jeux pédagogiques interactifs pour chaque classe (1ère à 9ème AF) ainsi qu'une plateforme complète de préparation aux examens officiels du Brevet (test blanc avec corrigé détaillé et fiches mémos).\n\n` +
       `Pour toute inscription ou renseignement scolaire, contactez la direction académique ou visitez l'onglet « Éducation » sur notre plateforme.`;
   }
 

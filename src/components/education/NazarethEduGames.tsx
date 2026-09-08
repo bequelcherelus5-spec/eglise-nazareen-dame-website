@@ -44,7 +44,7 @@ const GRADE_LABELS: Record<GradeLevel, { title: string; cycle: string; badge: st
   '6af': { title: '6ème Année Fondamentale', cycle: '2ème Cycle (CM2)', badge: 'Fin de Cycle Primaire' },
   '7af': { title: '7ème Année Fondamentale', cycle: '3ème Cycle', badge: 'Collège Fondamental' },
   '8af': { title: '8ème Année Fondamentale', cycle: '3ème Cycle', badge: 'Algèbre & Analyse' },
-  '9af': { title: '9ème Année Fondamentale', cycle: '3ème Cycle (Brevet/MENFP)', badge: 'Examen d’État' },
+  '9af': { title: '9ème Année Fondamentale', cycle: '3ème Cycle (Brevet d’État)', badge: 'Examen d’État' },
 };
 
 // Rich curriculum questions for each grade from 1ère to 9ème AF
@@ -560,7 +560,7 @@ export const NazarethEduGames: React.FC = () => {
             Jeux Éducatifs de la 1ère à la 9ème Année Fondamentale
           </h2>
           <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-            Apprendre en s'amusant selon le programme officiel haïtien (MENFP) : Mathématiques, Français, Sciences expérimentales, Histoire et Géographie d'Haïti !
+            Apprendre en s'amusant selon le programme fondamental haïtien : Mathématiques, Français, Sciences expérimentales, Histoire et Géographie d'Haïti !
           </p>
           <div className="pt-1 flex items-center gap-2 text-[11px] text-[#D4AF37]">
             <Star className="h-3.5 w-3.5 fill-[#D4AF37]" />
@@ -901,7 +901,7 @@ export const NazarethEduGames: React.FC = () => {
               </span>
               <h4 className="text-sm font-bold text-slate-800">École Fondamentale (1985)</h4>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Fondée au sein de l'Église du Nazaréen pour former les enfants de Damé, alliant rigueur académique du MENFP et valeurs bibliques de sanctification et d'intégrité.
+                Fondée au sein de l'Église du Nazaréen pour former les enfants de Damé, alliant rigueur académique et valeurs bibliques de sanctification et d'intégrité.
               </p>
             </div>
           </div>

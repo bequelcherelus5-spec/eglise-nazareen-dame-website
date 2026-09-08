@@ -282,6 +282,16 @@ export const Footer: React.FC<FooterProps> = ({
           
           <div className="flex items-center gap-4 text-[11px] text-slate-400">
             <span>Devise : « Sainteté à l’Éternel »</span>
+            <span className="text-slate-600">•</span>
+            {/* Discreet Secretariat / Admin access */}
+            <button
+              onClick={() => handleNav('admin')}
+              className="text-slate-500 hover:text-[#D4AF37] transition-colors flex items-center gap-1 cursor-pointer font-medium"
+              title="Accès réservé au Secrétariat Paroissial"
+            >
+              <Lock className="h-3 w-3" />
+              <span>Espace Secrétariat</span>
+            </button>
           </div>
         </div>
       </div>
