@@ -10,6 +10,8 @@ import { HistoryView } from './components/views/HistoryView';
 import { LeadershipView } from './components/views/LeadershipView';
 import { MinistriesEducationView } from './components/views/MinistriesEducationView';
 import { EducationView } from './components/views/EducationView';
+import { NazarethEduGames } from './components/education/NazarethEduGames';
+import { ExamPrepPlatform } from './components/education/ExamPrepPlatform';
 import { GalleryView } from './components/views/GalleryView';
 import { EventsView } from './components/views/EventsView';
 import { PrayerRequestView } from './components/views/PrayerRequestView';
@@ -29,6 +31,7 @@ import { apiService, AdminUser } from './services/apiService';
 import { PrayerRequestModal } from './components/PrayerRequestModal';
 import { DonationModal } from './components/DonationModal';
 import { EpndEnrollmentModal } from './components/EpndEnrollmentModal';
+import { ChurchAssistantBot } from './components/ChurchAssistantBot';
 
 const validViews: PageTab[] = [
   'accueil', 
@@ -37,6 +40,8 @@ const validViews: PageTab[] = [
   'leadership', 
   'ministeres', 
   'education', 
+  'jeux-educatifs',
+  'examens',
   'galerie',
   'evenements',
   'priere',
@@ -60,6 +65,15 @@ const normalizeView = (raw: string): PageTab => {
     case 'leadership': return 'leadership';
     case 'ministries': return 'ministeres';
     case 'education': return 'education';
+    case 'jeux-educatifs':
+    case 'jeux':
+    case 'games':
+    case 'jeux-fondamentale': return 'jeux-educatifs';
+    case 'examens':
+    case 'examen':
+    case 'exam':
+    case 'brevet':
+    case 'preparation-examen': return 'examens';
     case 'gallery': return 'galerie';
     case 'news':
     case 'articles':
@@ -232,6 +246,20 @@ export default function App() {
           />
         )}
 
+        {/* 6b. Espace Jeux Éducatifs (1ère à 9ème AF) */}
+        {currentView === 'jeux-educatifs' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <NazarethEduGames />
+          </div>
+        )}
+
+        {/* 6c. Plateforme Préparation aux Examens d'État (MENFP) */}
+        {currentView === 'examens' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <ExamPrepPlatform />
+          </div>
+        )}
+
         {/* 7. Gallery */}
         {currentView === 'galerie' && (
           <GalleryView onNavigate={handleNavigate} />
@@ -334,6 +362,11 @@ export default function App() {
         onClose={() => setIsEpndModalOpen(false)}
         preselectedCourseId={selectedEpndCourse}
       />
+
+      {/* Floating Parish Ministry Assistant Bot */}
+      {!isAdminView && (
+        <ChurchAssistantBot onNavigate={handleNavigate} />
+      )}
     </div>
   );
 }

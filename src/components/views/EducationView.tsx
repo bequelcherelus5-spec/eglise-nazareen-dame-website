@@ -4,6 +4,8 @@ import { EPND_COURSES } from '../../data/churchData';
 import { CHURCH_ASSETS, ChurchRealImage } from '../../data/churchMedia';
 import { ImageModal } from '../ImageModal';
 import { OfficialPhoto } from '../OfficialPhoto';
+import { NazarethEduGames } from '../education/NazarethEduGames';
+import { ExamPrepPlatform } from '../education/ExamPrepPlatform';
 import { 
   GraduationCap, 
   BookOpen, 
@@ -15,7 +17,9 @@ import {
   ShieldCheck, 
   Maximize2,
   Calendar,
-  Award
+  Award,
+  Gamepad2,
+  FileText
 } from 'lucide-react';
 
 interface EducationViewProps {
@@ -55,13 +59,20 @@ export const EducationView: React.FC<EducationViewProps> = ({
               <GraduationCap className="h-4 w-4" />
               S'inscrire à une formation EPND
             </button>
-            <button
-              onClick={() => onNavigate?.('ministeres')}
-              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 text-white px-5 py-3 text-xs sm:text-sm font-semibold transition-colors border border-white/20"
+            <a
+              href="#jeux-educatifs"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 text-white px-4 py-3 text-xs sm:text-sm font-semibold transition-colors border border-white/20"
             >
-              <Users className="h-4 w-4 text-[#D4AF37]" />
-              Voir tous les ministères
-            </button>
+              <Gamepad2 className="h-4 w-4 text-[#D4AF37]" />
+              Jeux Éducatifs (1ère - 9ème AF)
+            </a>
+            <a
+              href="#preparation-examens"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 text-white px-4 py-3 text-xs sm:text-sm font-semibold transition-colors border border-white/20"
+            >
+              <FileText className="h-4 w-4 text-[#D4AF37]" />
+              Préparation Examens MENFP
+            </a>
           </div>
         </div>
       </section>
@@ -101,8 +112,26 @@ export const EducationView: React.FC<EducationViewProps> = ({
                 </div>
               </div>
             </div>
-            <div className="mt-6 pt-4 border-t border-slate-100 text-xs font-semibold text-[#0F2C59]">
-              Devise : « Préparer l’enfant à devenir un adulte responsable »
+            <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <span className="text-xs font-semibold text-[#0F2C59]">
+                Devise : « Préparer l’enfant à devenir un adulte responsable »
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href="#jeux-educatifs"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#0F2C59] text-[#D4AF37] hover:bg-[#1A365D] text-xs font-bold transition-colors shadow-sm"
+                >
+                  <Gamepad2 className="h-3.5 w-3.5" />
+                  <span>Jeux Éducatifs (1ère-9ème AF)</span>
+                </a>
+                <a
+                  href="#preparation-examens"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#D4AF37] text-[#0F2C59] hover:bg-[#B38E22] text-xs font-bold transition-colors shadow-sm"
+                >
+                  <GraduationCap className="h-3.5 w-3.5" />
+                  <span>Examens MENFP</span>
+                </a>
+              </div>
             </div>
           </div>
 
@@ -207,8 +236,18 @@ export const EducationView: React.FC<EducationViewProps> = ({
         </div>
       </section>
 
+      {/* Section 1 Demandée : Jeux Éducatifs pour École Nazareth (1ère à 9ème AF) */}
+      <section id="jeux-educatifs" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-20">
+        <NazarethEduGames />
+      </section>
+
+      {/* Section 2 Demandée : Plateforme de Préparation aux Examens Officiels (MENFP) */}
+      <section id="preparation-examens" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-20">
+        <ExamPrepPlatform />
+      </section>
+
       {/* Les 4 Filières de l'EPND en Détail */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="formations-epnd" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-20">
         <div className="text-center max-w-2xl mx-auto mb-10">
           <span className="text-xs uppercase tracking-widest text-[#0F2C59] font-bold bg-[#0F2C59]/10 px-3 py-1 rounded-full">
             Filières EPND

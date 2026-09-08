@@ -5,6 +5,8 @@ export type PageTab =
   | 'leadership' 
   | 'ministeres' 
   | 'education' 
+  | 'jeux-educatifs'
+  | 'examens'
   | 'galerie'
   | 'evenements'
   | 'actualites' 

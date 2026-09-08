@@ -71,6 +71,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   // Secondary items in "Plus" dropdown
   const secondaryNavItems: { tab: PageTab; label: string; badge?: string; icon?: any }[] = [
+    { tab: 'jeux-educatifs', label: 'Jeux Éducatifs (1ère - 9ème AF)', badge: 'École Nazareth', icon: BookOpen },
+    { tab: 'examens', label: 'Préparation Examens (9ème AF)', badge: 'MENFP', icon: GraduationCap },
     { tab: 'podcast', label: 'Podcasts & Prédications', badge: 'Audio', icon: Radio },
     { tab: 'documents', label: 'Demande de Documents', badge: 'Greffe' },
     { tab: 'priere', label: 'Demande de Prière', badge: 'Intercession' },
@@ -87,6 +89,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     { tab: 'leadership', label: 'Leadership & Conseil Pastoral' },
     { tab: 'ministeres', label: 'Ministères de l\'Église' },
     { tab: 'education', label: 'Éducation (École Nazareth & EPND)' },
+    { tab: 'jeux-educatifs', label: 'Jeux Éducatifs (1ère à 9ème AF)', badge: 'Nouveau' },
+    { tab: 'examens', label: 'Plateforme Préparation Examens', badge: 'MENFP' },
     { tab: 'galerie', label: 'Galerie Photos & Patrimoine' },
     { tab: 'evenements', label: 'Cultes, Horaires & Événements' },
     { tab: 'actualites', label: 'Actualités & Enseignements' },
