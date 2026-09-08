@@ -77,7 +77,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     { tab: 'projets', label: 'Projets Sociaux' },
     { tab: 'jeux-bibliques', label: 'Jeux Bibliques', badge: 'Interactif' },
     { tab: 'contact', label: 'Contact & Accès' },
-    { tab: 'admin-login', label: 'Espace Secrétariat', badge: 'Privé' },
   ];
 
   // All navigation items for mobile drawer
@@ -96,8 +95,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { tab: 'priere', label: 'Demande de Prière & Intercession', badge: 'Prière' },
     { tab: 'projets', label: 'Projets Sociaux (CDEJ & Digicel)' },
     { tab: 'jeux-bibliques', label: 'Jeux Bibliques Éducatifs', badge: 'Interactif' },
-    { tab: 'contact', label: 'Contact, Accès & Secrétariat' },
-    { tab: 'admin-login', label: 'Espace Secrétariat (Admin)', badge: 'Admin' },
+    { tab: 'contact', label: 'Contact & Accès' },
   ];
 
   return (

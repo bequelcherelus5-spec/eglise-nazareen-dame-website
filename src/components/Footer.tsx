@@ -282,14 +282,6 @@ export const Footer: React.FC<FooterProps> = ({
           
           <div className="flex items-center gap-4 text-[11px] text-slate-400">
             <span>Devise : « Sainteté à l’Éternel »</span>
-            <span>•</span>
-            <button
-              onClick={() => handleNav('admin-login')}
-              className="hover:text-[#D4AF37] transition-colors flex items-center gap-1 font-semibold cursor-pointer"
-            >
-              <Lock className="h-3 w-3" />
-              <span>Espace Secrétariat</span>
-            </button>
           </div>
         </div>
       </div>

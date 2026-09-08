@@ -17,7 +17,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Admin credentials & Security configuration
 const ADMIN_RECOVERY_EMAIL = 'eglisedunazareendedame@gmail.com';
-const DEFAULT_ADMIN_PASSCODE = '123456';
+const DEFAULT_ADMIN_PASSCODE = 'Bequel1974';
 const SECURITY_FILE = path.join(process.cwd(), 'data', 'security.json');
 
 let currentAdminPasscode = DEFAULT_ADMIN_PASSCODE;
@@ -58,8 +58,9 @@ const ALLOWED_ADMIN_USERS = [
 ].filter(Boolean);
 
 const ALLOWED_ADMIN_PASSWORDS = [
-  '123456',
   'Bequel1974',
+  '123456',
+  'Nazareen1979',
   process.env.ADMIN_PASSWORD || ''
 ].filter(Boolean);
 

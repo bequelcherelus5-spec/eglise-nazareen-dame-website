@@ -3,7 +3,7 @@
  * Église du Nazaréen de Damé
  */
 
-export const DEFAULT_ADMIN_PASSCODE = '123456';
+export const DEFAULT_ADMIN_PASSCODE = 'Bequel1974';
 export const ADMIN_RECOVERY_EMAIL = 'eglisedunazareendedame@gmail.com';
 export const STORAGE_KEY_PASSCODE = 'dame_admin_access_code';
 
@@ -14,7 +14,7 @@ export interface SecurityResult {
 
 export const adminSecurityService = {
   /**
-   * Récupère le code d'accès actuel depuis le localStorage (ou le code par défaut 123456)
+   * Récupère le code d'accès actuel depuis le localStorage (ou le code par défaut Bequel1974)
    */
   getPasscode(): string {
     try {
@@ -40,7 +40,7 @@ export const adminSecurityService = {
   },
 
   /**
-   * Réinitialise localement le code au code par défaut 123456
+   * Réinitialise localement le code au code par défaut Bequel1974
    */
   resetToDefaultLocally(): void {
     try {
@@ -51,12 +51,12 @@ export const adminSecurityService = {
   },
 
   /**
-   * Vérifie si un code saisi correspond au code d'accès actif
+   * Vérifie si un code saisi correspond au code d'accès actif ou aux codes autorisés
    */
   verifyCode(enteredCode: string): boolean {
     const clean = enteredCode.trim();
     const current = this.getPasscode();
-    return clean === current || clean === DEFAULT_ADMIN_PASSCODE || clean === 'Bequel1974';
+    return clean === current || clean === DEFAULT_ADMIN_PASSCODE || clean === 'Bequel1974' || clean === '123456' || clean === 'Nazareen1979';
   },
 
   /**

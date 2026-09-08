@@ -84,8 +84,10 @@ const normalizeView = (raw: string): PageTab => {
     case 'bible-games': return 'jeux-bibliques';
     case 'admin':
     case 'dashboard':
+    case 'secretariat':
     case 'secretaire': return 'admin';
     case 'admin-login':
+    case 'secretariat-login':
     case 'login': return 'admin-login';
     default:
       return validViews.includes(clean as PageTab) ? (clean as PageTab) : 'accueil';

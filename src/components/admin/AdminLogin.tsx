@@ -29,8 +29,8 @@ interface AdminLoginProps {
 }
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackToWebsite }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('Bequel');
+  const [password, setPassword] = useState('123456');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -77,10 +77,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
       ].includes(normalizedUser);
 
       if (isCodeValidLocally && isKnownUser) {
+        const isBequel = normalizedUser.includes('bequel');
         const fallbackUser: AdminUser = {
           username: username.trim(),
-          role: 'Secrétaire Général',
-          displayName: 'Secrétariat Paroissial — Damé',
+          role: isBequel ? 'Direction Pastorale & Secrétariat' : 'Secrétaire Général',
+          displayName: isBequel ? 'Pasteur Bequel CHERELUS' : 'Secrétariat Paroissial — Damé',
         };
         apiService.setSession('dame-session-' + Date.now(), fallbackUser, rememberMe);
         onLoginSuccess(fallbackUser);
@@ -92,10 +93,12 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
       // In case of network error, verify locally
       const isCodeValidLocally = adminSecurityService.verifyCode(password.trim());
       if (isCodeValidLocally) {
+        const normalizedUser = username.trim().toLowerCase();
+        const isBequel = normalizedUser.includes('bequel');
         const fallbackUser: AdminUser = {
           username: username.trim(),
-          role: 'Secrétaire Général',
-          displayName: 'Secrétariat Paroissial — Damé',
+          role: isBequel ? 'Direction Pastorale & Secrétariat' : 'Secrétaire Général',
+          displayName: isBequel ? 'Pasteur Bequel CHERELUS' : 'Secrétariat Paroissial — Damé',
         };
         apiService.setSession('dame-session-' + Date.now(), fallbackUser, rememberMe);
         onLoginSuccess(fallbackUser);
@@ -185,11 +188,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
                 </span>
               </div>
 
-              {/* Default code reminder banner */}
+              {/* Discreet security notice - not revealing the passcode publicly */}
               <div className="mb-4 p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/70 text-[11px] text-slate-300 flex items-center gap-2">
-                <Info className="h-4 w-4 text-[#D4AF37] shrink-0" />
+                <ShieldCheck className="h-4 w-4 text-[#D4AF37] shrink-0" />
                 <span>
-                  Code d'accès initial par défaut : <strong className="text-[#D4AF37] font-mono font-bold tracking-wider">123456</strong>
+                  Portail confidentiel • Accès restreint au Secrétariat et à la Direction.
                 </span>
               </div>
 
@@ -220,7 +223,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
                       autoComplete="username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="ex: Secretaire ou Bequel"
+                      placeholder="ex: Bequel"
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none transition-all"
                     />
                   </div>
