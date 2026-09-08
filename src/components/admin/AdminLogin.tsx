@@ -30,7 +30,7 @@ interface AdminLoginProps {
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackToWebsite }) => {
   const [username, setUsername] = useState('Bequel');
-  const [password, setPassword] = useState('123456');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -165,7 +165,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
               {CHURCH_INFO.name}
             </h1>
             <p className="text-xs text-[#D4AF37] font-semibold mt-1 tracking-widest uppercase">
-              Espace Sécurisé • Secrétariat Paroissial
+              Espace Sécurisé • Accès Secrétariat
             </p>
           </div>
         </div>
@@ -180,11 +180,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-[#D4AF37]" />
                   <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                    Authentification Administrateur
+                    Accès au Secrétariat
                   </h2>
                 </div>
                 <span className="text-[10px] text-[#D4AF37] font-mono bg-slate-900 px-2.5 py-1 rounded-full border border-slate-700">
-                  Accès réservé
+                  Accès protégé
                 </span>
               </div>
 

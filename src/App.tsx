@@ -132,16 +132,27 @@ export default function App() {
     }
   };
 
-  // Listen to browser back/forward and hash changes
+  // Listen to browser back/forward, popstate and hash changes
   useEffect(() => {
-    const onHashChange = () => {
-      const target = normalizeView(window.location.hash);
+    const onLocationChange = () => {
+      const hash = window.location.hash;
+      const pathname = window.location.pathname;
+      let target: PageTab = 'accueil';
+      if (hash && hash !== '#') {
+        target = normalizeView(hash);
+      } else if (pathname && pathname !== '/') {
+        target = normalizeView(pathname);
+      }
       if (target !== currentView) {
         setCurrentView(target);
       }
     };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
+    window.addEventListener('hashchange', onLocationChange);
+    window.addEventListener('popstate', onLocationChange);
+    return () => {
+      window.removeEventListener('hashchange', onLocationChange);
+      window.removeEventListener('popstate', onLocationChange);
+    };
   }, [currentView]);
 
   const handleOpenEpndEnrollModal = (courseId?: string) => {
