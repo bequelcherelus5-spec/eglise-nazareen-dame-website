@@ -302,7 +302,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Delete Newsletter Subscriber
   const handleDeleteSubscriber = async (id: string) => {
     if (!window.confirm('Voulez-vous supprimer cet abonné de la liste de diffusion ?')) return;
-    const ok = await apiService.deleteNewsletterSubscriber(id);
+    const ok = await apiService.deleteSubscriber(id);
     if (ok) {
       setSubscribers(prev => prev.filter(s => s.id !== id));
       loadData();
@@ -312,7 +312,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Toggle Newsletter Subscriber Status
   const handleToggleSubscriberStatus = async (sub: NewsletterSubscriber) => {
     const nextStatus = sub.status === 'Active' ? 'Unsubscribed' : 'Active';
-    const ok = await apiService.updateNewsletterSubscriber(sub.id, { status: nextStatus });
+    const ok = await apiService.updateSubscriberStatus(sub.id, nextStatus);
     if (ok) {
       setSubscribers(prev => prev.map(s => s.id === sub.id ? { ...s, status: nextStatus } : s));
       loadData();
@@ -1963,6 +1963,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
             </div>
+          )}
+
+          {/* 8. EVENTS MANAGER TAB */}
+          {activeTab === 'events' && (
+            <EventsManager 
+              eventSubmissions={submissions.filter(s => s.category === 'Event Registration')}
+              onEventsChanged={loadData}
+            />
+          )}
+
+          {/* 9. PUBLICATIONS MANAGER TAB */}
+          {activeTab === 'publications' && (
+            <PublicationsManager 
+              onPublicationsChanged={loadData}
+            />
           )}
 
         </div>
