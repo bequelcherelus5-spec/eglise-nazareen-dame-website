@@ -17,6 +17,10 @@ export const CHURCH_INFO = {
     lat: 19.805, // Mole-Saint-Nicolas / Damé region
     lng: -73.385,
   },
+  social: {
+    facebook: "https://www.facebook.com/profile.php?id=61586834645549",
+    youtube: "https://www.youtube.com/@EgliseduNazareenDeDame",
+  },
   openingHours: [
     { day: "Dimanche", time: "08h00 - 11h30", title: "Culte d'Adoration & Célébration", desc: "Louange, Sainte Cène et prédication de la Parole" },
     { day: "Dimanche", time: "16h00 - 17h30", title: "École du Dimanche pour Tous", desc: "Classes d'études bibliques par tranche d'âge" },

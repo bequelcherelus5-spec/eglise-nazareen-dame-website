@@ -15,7 +15,9 @@ import {
   FileText,
   Lock,
   Send,
-  CheckCircle2
+  CheckCircle2,
+  Facebook,
+  Youtube
 } from 'lucide-react';
 
 interface FooterProps {
@@ -177,14 +179,43 @@ export const Footer: React.FC<FooterProps> = ({
             <p className="text-xs text-slate-300 leading-relaxed">
               Une communauté engagée depuis 1979 dans l'adoration, l'éducation par l'École Nazareth & l'EPND, et la compassion chrétienne à Damé.
             </p>
-            <div className="pt-2 flex items-center gap-2 text-xs">
+            <div className="pt-2 flex flex-wrap items-center gap-2 text-xs">
               <button
                 onClick={() => handleNav('documents')}
-                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <FileText className="h-3.5 w-3.5" />
                 <span>Demande de Documents</span>
               </button>
+            </div>
+
+            {/* Réseaux Sociaux Officiels */}
+            <div className="pt-3 border-t border-slate-800 space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                Suivez l'Église en Ligne :
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href="https://www.facebook.com/profile.php?id=61586834645549"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1877F2]/20 hover:bg-[#1877F2] text-white border border-[#1877F2]/40 text-xs font-semibold transition-all group shadow-xs"
+                  title="Page Facebook officielle de l'Église du Nazaréen de Damé"
+                >
+                  <Facebook className="h-3.5 w-3.5 text-[#1877F2] group-hover:text-white" />
+                  <span>Facebook</span>
+                </a>
+                <a
+                  href="https://www.youtube.com/@EgliseduNazareenDeDame"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF0000]/20 hover:bg-[#FF0000] text-white border border-[#FF0000]/40 text-xs font-semibold transition-all group shadow-xs"
+                  title="Chaîne YouTube officielle de l'Église du Nazaréen de Damé"
+                >
+                  <Youtube className="h-3.5 w-3.5 text-[#FF0000] group-hover:text-white" />
+                  <span>YouTube</span>
+                </a>
+              </div>
             </div>
           </div>
 
@@ -268,6 +299,19 @@ export const Footer: React.FC<FooterProps> = ({
               <span className="block font-semibold text-slate-300">District Bas Nord-Ouest</span>
               <span>Église du Nazaréen Région Caraïbe</span>
             </div>
+
+            {/* Accès clairement identifiable Espace Secrétariat */}
+            <div className="pt-2">
+              <button
+                id="footer-secretariat-btn"
+                onClick={() => handleNav('admin-login')}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 via-[#D4AF37]/20 to-amber-600/10 hover:from-amber-500/30 hover:to-[#D4AF37]/30 border border-[#D4AF37]/50 text-[#D4AF37] hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer group"
+                title="Accès sécurisé réservé au Secrétariat et à la Direction Pastorale"
+              >
+                <Lock className="h-3.5 w-3.5 text-[#D4AF37] group-hover:scale-110 transition-transform" />
+                <span>Espace Secrétariat</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -283,13 +327,14 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="flex items-center gap-4 text-[11px] text-slate-400">
             <span>Devise : « Sainteté à l’Éternel »</span>
             <span className="text-slate-600">•</span>
-            {/* Discreet Secretariat / Admin access */}
+            {/* Accès clairement identifiable Espace Secrétariat */}
             <button
-              onClick={() => handleNav('admin')}
-              className="text-slate-500 hover:text-[#D4AF37] transition-colors flex items-center gap-1 cursor-pointer font-medium"
-              title="Accès réservé au Secrétariat Paroissial"
+              id="footer-bottom-secretariat-btn"
+              onClick={() => handleNav('admin-login')}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-[#D4AF37] text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-[#D4AF37] font-semibold text-xs transition-all shadow-xs cursor-pointer group"
+              title="Portail de connexion du Secrétariat Paroissial"
             >
-              <Lock className="h-3 w-3" />
+              <Lock className="h-3.5 w-3.5 text-[#D4AF37] group-hover:text-slate-950 transition-colors" />
               <span>Espace Secrétariat</span>
             </button>
           </div>

@@ -45,6 +45,7 @@ import {
   ReadingTheme,
   ReadingFontSize
 } from './BibleReadingComfortControls';
+import { BibleChampionsLeaderboard } from './BibleChampionsLeaderboard';
 
 const STORAGE_LEADERBOARD_KEY = 'dame_bible_games_leaderboard';
 const STORAGE_READING_PREFS_KEY = 'dame_bible_reading_preferences';
@@ -68,6 +69,7 @@ export const BibleGamesView: React.FC = () => {
 
   // Game Setup State
   const [gameMode, setGameMode] = useState<'lobby' | 'playing' | 'gameover'>('lobby');
+  const [lobbyTab, setLobbyTab] = useState<'play' | 'leaderboard'>('play');
   const [gameType, setGameType] = useState<GameType>('quiz');
   const [difficulty, setDifficulty] = useState<GameDifficulty>('moyen');
   const [audience, setAudience] = useState<GameAudience>('jeunesse');
@@ -509,6 +511,46 @@ export const BibleGamesView: React.FC = () => {
         {/* --- 1. LOBBY CONFIGURATION --- */}
         {gameMode === 'lobby' && (
           <div className="space-y-8">
+            {/* Lobby View Toggle: Nouvelle Partie vs Tableau des Champions */}
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                id="lobby-tab-play-btn"
+                onClick={() => setLobbyTab('play')}
+                className={`inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all shadow-sm cursor-pointer ${
+                  lobbyTab === 'play'
+                    ? 'bg-[#0F2C59] text-white ring-2 ring-[#D4AF37] shadow-md'
+                    : isDark
+                    ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    : isSepia
+                    ? 'bg-[#EAE0D3] text-[#4A3926] hover:bg-[#DFD3C3]'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <Gamepad2 className="h-4 w-4 text-[#D4AF37]" />
+                <span>Lancer une Partie</span>
+              </button>
+
+              <button
+                type="button"
+                id="lobby-tab-leaderboard-btn"
+                onClick={() => setLobbyTab('leaderboard')}
+                className={`inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all shadow-sm cursor-pointer ${
+                  lobbyTab === 'leaderboard'
+                    ? 'bg-[#0F2C59] text-white ring-2 ring-[#D4AF37] shadow-md'
+                    : isDark
+                    ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    : isSepia
+                    ? 'bg-[#EAE0D3] text-[#4A3926] hover:bg-[#DFD3C3]'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <Trophy className="h-4 w-4 text-[#D4AF37]" />
+                <span>Tableau des Champions & Partage</span>
+              </button>
+            </div>
+
+            {lobbyTab === 'play' && (
             <div className={`rounded-3xl border p-6 sm:p-10 shadow-sm space-y-8 transition-colors ${cardSurfaceClass}`}>
               {/* Type of Game */}
               <div>
@@ -687,55 +729,18 @@ export const BibleGamesView: React.FC = () => {
                   Commencer la Partie
                 </button>
               </div>
-            </div>
-
-            {/* Leaderboard Table (stored in localStorage) */}
-            {leaderboard.length > 0 && (
-              <div className={`rounded-3xl border p-6 sm:p-8 shadow-sm transition-colors ${cardSurfaceClass}`}>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="h-5 w-5 text-[#D4AF37]" />
-                    <h3 className={`text-base font-bold font-display ${isDark ? 'text-white' : isSepia ? 'text-[#2C2416]' : 'text-slate-900'}`}>
-                      Tableau des Meilleurs Scores (Historique Local)
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem(STORAGE_LEADERBOARD_KEY);
-                      setLeaderboard([]);
-                    }}
-                    className="text-[11px] text-slate-400 hover:text-red-500 transition-colors"
-                  >
-                    Effacer l'historique
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className={`border-b ${isDark ? 'border-slate-800 text-slate-400' : isSepia ? 'border-[#E8DDD0] text-[#7D6B57]' : 'border-slate-100 text-slate-400'}`}>
-                        <th className="py-2.5 font-semibold">Date</th>
-                        <th className="py-2.5 font-semibold">Jeu</th>
-                        <th className="py-2.5 font-semibold">Gagnant</th>
-                        <th className="py-2.5 font-semibold">Score</th>
-                        <th className="py-2.5 font-semibold">Joueurs</th>
-                      </tr>
-                    </thead>
-                    <tbody className={`divide-y ${isDark ? 'divide-slate-800' : isSepia ? 'divide-[#E8DDD0]' : 'divide-slate-100'}`}>
-                      {leaderboard.map((item) => (
-                        <tr key={item.id} className={isDark ? 'hover:bg-slate-800/50' : isSepia ? 'hover:bg-[#F5EFE4]' : 'hover:bg-slate-50'}>
-                          <td className={`py-2.5 ${isDark ? 'text-slate-400' : isSepia ? 'text-[#7D6B57]' : 'text-slate-500'}`}>{item.date}</td>
-                          <td className="py-2.5 font-bold uppercase text-[#D4AF37]">{item.gameType}</td>
-                          <td className={`py-2.5 font-semibold ${isDark ? 'text-slate-200' : isSepia ? 'text-[#2C2416]' : 'text-slate-800'}`}>{item.winnerName}</td>
-                          <td className="py-2.5 font-bold text-[#D4AF37]">{item.players[0]?.score || 0} pts</td>
-                          <td className={`py-2.5 ${isDark ? 'text-slate-400' : isSepia ? 'text-[#7D6B57]' : 'text-slate-500'}`}>{item.players.length} participant(s)</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
               </div>
             )}
+
+            {/* Tableau des Champions & Partage Social */}
+            <BibleChampionsLeaderboard
+              isDark={isDark}
+              isSepia={isSepia}
+              onPlayAgain={() => {
+                setLobbyTab('play');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
           </div>
         )}
 
@@ -1040,6 +1045,23 @@ export const BibleGamesView: React.FC = () => {
               >
                 Changer de jeu / Configuration
               </button>
+            </div>
+
+            {/* Inscription directe au Tableau des Champions & Partage Social */}
+            <div className="pt-8 border-t border-slate-700/30 text-left">
+              <BibleChampionsLeaderboard
+                isDark={isDark}
+                isSepia={isSepia}
+                onPlayAgain={startGame}
+                recentScore={{
+                  playerName: [...playersScores].sort((a, b) => b.score - a.score)[0]?.name || 'Joueur 1',
+                  score: [...playersScores].sort((a, b) => b.score - a.score)[0]?.score || 0,
+                  gameType,
+                  audience,
+                  correctAnswers: [...playersScores].sort((a, b) => b.score - a.score)[0]?.correctAnswers || 0,
+                  totalQuestions: questions.length || 6
+                }}
+              />
             </div>
           </div>
         )}

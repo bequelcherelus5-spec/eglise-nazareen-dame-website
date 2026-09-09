@@ -167,10 +167,10 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold font-display text-white tracking-wide uppercase">
-              {CHURCH_INFO.name}
+              Espace Secrétariat
             </h1>
-            <p className="text-xs text-[#D4AF37] font-semibold mt-1 tracking-widest uppercase">
-              Espace Sécurisé • Accès Secrétariat
+            <p className="text-xs text-[#D4AF37] font-semibold mt-1 tracking-wider uppercase">
+              {CHURCH_INFO.name} • Portail Sécurisé
             </p>
           </div>
         </div>
@@ -185,7 +185,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-[#D4AF37]" />
                   <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                    Accès au Secrétariat
+                    Connexion au Secrétariat
                   </h2>
                 </div>
                 <span className="text-[10px] text-[#D4AF37] font-mono bg-slate-900 px-2.5 py-1 rounded-full border border-slate-700">
@@ -193,11 +193,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
                 </span>
               </div>
 
-              {/* Discreet security notice - not revealing the passcode publicly */}
+              {/* Discreet security notice */}
               <div className="mb-4 p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/70 text-[11px] text-slate-300 flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-[#D4AF37] shrink-0" />
                 <span>
-                  Portail confidentiel • Accès restreint au Secrétariat et à la Direction.
+                  Portail confidentiel • Réservé au Secrétariat et à la Direction Pastorale.
                 </span>
               </div>
 
@@ -261,7 +261,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
                       autoComplete="current-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Code d'accès (par défaut: 123456)"
+                      placeholder="Code d'accès secret"
                       className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none transition-all font-mono"
                     />
                     <button
