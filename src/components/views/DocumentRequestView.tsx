@@ -28,13 +28,13 @@ const DOCUMENT_OPTIONS: { id: DocumentTypeRequested; label: string; desc: string
   {
     id: 'Certificat de baptême',
     label: 'Certificat de baptême',
-    desc: 'Attestation certifiant le baptême par immersion célébré au sein de la paroisse.',
+    desc: 'Attestation certifiant le baptême par immersion célébré au sein de l’Église.',
     delay: '2 à 4 jours ouvrés'
   },
   {
     id: 'Certificat de mariage',
     label: 'Certificat de mariage chrétien',
-    desc: 'Copie certifiée conforme du registre paroissial pour mariage religieux ou civil.',
+    desc: 'Copie certifiée conforme du registre de l’Église pour mariage religieux ou civil.',
     delay: '3 à 5 jours ouvrés'
   },
   {
@@ -71,7 +71,7 @@ export const DocumentRequestView: React.FC<DocumentRequestViewProps> = ({ onNavi
     documentType: 'Certificat de baptême' as DocumentTypeRequested,
     approximateYear: '',
     urgency: 'Normale',
-    deliveryMethod: 'Retrait au secrétariat paroissial',
+    deliveryMethod: 'Retrait au secrétariat de l’Église',
     message: ''
   });
 
@@ -149,7 +149,7 @@ export const DocumentRequestView: React.FC<DocumentRequestViewProps> = ({ onNavi
       documentType: 'Certificat de baptême',
       approximateYear: '',
       urgency: 'Normale',
-      deliveryMethod: 'Retrait au secrétariat paroissial',
+      deliveryMethod: 'Retrait au secrétariat de l’Église',
       message: ''
     });
   };
@@ -161,7 +161,7 @@ export const DocumentRequestView: React.FC<DocumentRequestViewProps> = ({ onNavi
         <div className="max-w-4xl mx-auto text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/40 px-4 py-1 text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-3">
             <FileText className="h-3.5 w-3.5" />
-            Secrétariat Paroissial & Greffe
+            Secrétariat de l’Église & Greffe
           </span>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold font-display">
             Demande de Documents Officiels
@@ -193,7 +193,7 @@ export const DocumentRequestView: React.FC<DocumentRequestViewProps> = ({ onNavi
                       Votre dossier est entre les mains du secrétariat
                     </h2>
                     <p className="text-sm text-slate-600 max-w-md mx-auto">
-                      Un numéro de dossier officiel a été attribué à votre demande. Le secrétariat paroissial vérifie les registres et vous contactera dès que le document sera établi.
+                      Un numéro de dossier officiel a été attribué à votre demande. Le secrétariat de l’Église vérifie les registres et vous contactera dès que le document sera établi.
                     </p>
                   </div>
 
@@ -294,7 +294,7 @@ export const DocumentRequestView: React.FC<DocumentRequestViewProps> = ({ onNavi
                     <Info className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
                     <div>
                       <span className="font-bold">Délai indicatif d'instruction : </span>
-                      <span>{selectedDocConfig.delay}. Vérification auprès des registres paroissiaux de Damé.</span>
+                      <span>{selectedDocConfig.delay}. Vérification auprès des registres de l’Église de Damé.</span>
                     </div>
                   </div>
 
@@ -377,7 +377,7 @@ export const DocumentRequestView: React.FC<DocumentRequestViewProps> = ({ onNavi
                         onChange={(e) => setFormData({ ...formData, deliveryMethod: e.target.value })}
                         className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#0F2C59] outline-none bg-white"
                       >
-                        <option value="Retrait au secrétariat paroissial">Retrait sur place (Paroisse Damé)</option>
+                        <option value="Retrait au secrétariat de l’Église">Retrait sur place (Église de Damé)</option>
                         <option value="Transmission numérique (PDF signé par Email)">Transmission PDF signé par Email</option>
                         <option value="Transmission par WhatsApp">Copie numérique via WhatsApp</option>
                         <option value="Envoi par courrier postal / messagerie">Envoi vers autre ville d'Haïti</option>
@@ -475,7 +475,7 @@ export const DocumentRequestView: React.FC<DocumentRequestViewProps> = ({ onNavi
                   </span>
                   <div>
                     <span className="font-bold text-slate-900 block">Examen dans les archives</span>
-                    <span className="text-slate-500">Le greffe paroissial recherche votre dossier dans les registres physiques de Damé.</span>
+                    <span className="text-slate-500">Le secrétariat de l’Église recherche votre dossier dans les registres physiques de Damé.</span>
                   </div>
                 </li>
 
@@ -485,7 +485,7 @@ export const DocumentRequestView: React.FC<DocumentRequestViewProps> = ({ onNavi
                   </span>
                   <div>
                     <span className="font-bold text-slate-900 block">Signature pastorale & Sceau</span>
-                    <span className="text-slate-500">Le Pasteur Principal appose la signature officielle et le sceau paroissial authentifié.</span>
+                    <span className="text-slate-500">Le Pasteur Principal appose la signature officielle et le sceau authentifié de l’Église.</span>
                   </div>
                 </li>
 
@@ -507,10 +507,10 @@ export const DocumentRequestView: React.FC<DocumentRequestViewProps> = ({ onNavi
                 Permanences du Secrétariat
               </span>
               <h3 className="text-lg font-bold font-display">
-                Bureau Paroissial de Damé
+                Secrétariat Général de l’Église de Damé
               </h3>
               <p className="text-xs text-slate-200 leading-relaxed">
-                Pour les demandes urgentes ou les retraits en main propre, le bureau paroissial est ouvert aux fidèles et au public :
+                Pour les demandes urgentes ou les retraits en main propre, le bureau de l’Église est ouvert aux fidèles et au public :
               </p>
 
               <div className="space-y-2 text-xs border-t border-white/10 pt-3">

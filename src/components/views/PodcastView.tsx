@@ -559,7 +559,7 @@ export const PodcastView: React.FC<PodcastViewProps> = ({ onNavigate }) => {
               Vous avez besoin d'une prière ou d'un conseil pastoral ?
             </h3>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Le pasteur Bequel CHERELUS et le conseil paroissial de Damé sont à votre disposition pour vous accompagner dans la prière et la foi.
+              Le pasteur Bequel CHERELUS et les responsables de l'Église de Damé sont à votre disposition pour vous accompagner dans la prière et la foi.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">

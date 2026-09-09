@@ -84,7 +84,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onNavigate }) => {
               Le 23 Décembre 1979 : La première flamme à Damé
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              C'est à l'aube de Noël 1979 que le pionnier <strong>Saurel ALCINÉ</strong> planta les premiers jalons spirituels de ce qui allait devenir l'une des communautés évangéliques les plus vibrantes du District Bas Nord-Ouest.
+              C'est à l'aube de Noël 1979 que le pionnier <strong>Saurel ALCINÉ</strong> planta les premiers jalons spirituels de ce qui allait devenir l'une des communautés évangéliques les plus vibrantes de la région.
             </p>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
               À l'époque, Damé était une section communale isolée, confrontée à d'importants défis matériels, scolaires et sanitaires. Animé par la conviction de la sainteté biblique (« Sainteté à l’Éternel »), le fondateur et les premiers convertis se rassemblèrent sous des abris de fortune pour prier, chanter des cantiques et proclamer la régénération en Christ.
@@ -126,8 +126,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onNavigate }) => {
                   <span className="font-bold text-white">3ème Section Damé</span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-white/10">
-                  <span className="text-slate-300">District de rattachement</span>
-                  <span className="font-bold text-white">District Bas Nord-Ouest</span>
+                  <span className="text-slate-300">Commune</span>
+                  <span className="font-bold text-white">Môle-Saint-Nicolas</span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-white/10">
                   <span className="text-slate-300">Développement scolaire</span>

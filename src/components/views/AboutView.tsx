@@ -43,7 +43,7 @@ export const AboutView: React.FC<AboutViewProps> = ({
             À Propos de Notre Église
           </h1>
           <p className="text-sm sm:text-base text-slate-200 leading-relaxed max-w-2xl mx-auto">
-            L'Église du Nazaréen de Damé est une communauté chrétienne évangélique dédiée à la proclamation de la sainteté biblique, à l'édification spirituelle et au service fraternel dans le District Bas Nord-Ouest d'Haïti.
+            L'Église du Nazaréen de Damé est une communauté chrétienne évangélique dédiée à la proclamation de la sainteté biblique, à l'édification spirituelle et au service fraternel dans la région de Damé (Môle-Saint-Nicolas, Haïti).
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
@@ -102,7 +102,7 @@ export const AboutView: React.FC<AboutViewProps> = ({
                 Une Église enracinée dans la foi nazaréenne mondiale
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                L'Église de Damé est membre à part entière de la dénomination mondiale de l'<strong>Église du Nazaréen</strong> (siège mondial à Lenexa, Kansas, USA et Région Méso-Amérique / Caraïbes). Au niveau national, elle est rattachée au <strong>District Bas Nord-Ouest d'Haïti</strong>.
+                L'Église de Damé est membre à part entière de la dénomination mondiale de l'<strong>Église du Nazaréen</strong> (siège mondial à Lenexa, Kansas, USA et Région Méso-Amérique / Caraïbes), œuvrant activement au service de la communauté de Damé.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3">
@@ -150,7 +150,7 @@ export const AboutView: React.FC<AboutViewProps> = ({
               </div>
               <h3 className="text-lg font-bold font-display text-[#0F2C59] mb-2">Notre Mission</h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Faire des disciples à l'image du Christ dans la 3ème Section Damé et le District Bas Nord-Ouest, en proclamant l'Évangile intégral qui transforme les cœurs, restaure les familles et élève la communauté par la sanctification.
+                Faire des disciples à l'image du Christ dans la 3ème Section Damé et ses environs, en proclamant l'Évangile intégral qui transforme les cœurs, restaure les familles et élève la communauté par la sanctification.
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-semibold text-[#0F2C59]">
@@ -312,7 +312,7 @@ export const AboutView: React.FC<AboutViewProps> = ({
           src: '/images/logo.svg',
           alt: 'Sceau Officiel Église du Nazaréen de Damé',
           title: 'Sceau Officiel de l\'Église du Nazaréen de Damé',
-          caption: 'Emblème officiel de l\'assemblée représentant la croix, le livre ouvert de la Parole, et la devise « Sainteté à l’Éternel » dans le District Bas Nord-Ouest d\'Haïti.'
+          caption: 'Emblème officiel de l\'assemblée représentant la croix, le livre ouvert de la Parole, et la devise « Sainteté à l’Éternel » à Damé (Môle-Saint-Nicolas, Haïti).'
         }}
       />
     </div>

@@ -799,7 +799,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {refreshing && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
             </div>
             <p className="text-xs text-slate-500">
-              Paroisse de Damé • « Sainteté à l’Éternel » • District Bas Nord-Ouest
+              Paroisse de Damé • « Sainteté à l’Éternel » • Commune de Môle-Saint-Nicolas
             </p>
           </div>
 

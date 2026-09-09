@@ -153,7 +153,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       « Sainteté à l'Éternel »
                     </h3>
                     <p className="text-[11px] text-slate-300">
-                      District Bas Nord-Ouest • Haïti
+                      Damé • Môle-Saint-Nicolas, Haïti
                     </p>
                   </div>
                 </div>

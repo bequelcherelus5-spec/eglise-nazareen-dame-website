@@ -147,7 +147,7 @@ export const LeadershipView: React.FC = () => {
               </div>
 
               <div className="pt-6 w-full border-t border-white/10 text-xs text-slate-300 space-y-1">
-                <p>District Bas Nord-Ouest • Haïti</p>
+                <p>Église de Damé • Môle-Saint-Nicolas, Haïti</p>
                 <p className="text-[#D4AF37] font-semibold">{CHURCH_INFO.motto}</p>
               </div>
             </div>
@@ -205,7 +205,7 @@ export const LeadershipView: React.FC = () => {
             Le Conseil d'Église
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 mt-2">
-            Les officiers élus veillant à l'administration, aux finances et à la bonne marche de l'assemblée paroissiale.
+            Les officiers élus veillant à l'administration, aux finances et à la bonne marche de notre assemblée chrétienne.
           </p>
         </div>
 
@@ -252,7 +252,7 @@ export const LeadershipView: React.FC = () => {
               Responsables des Départements
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 mt-2">
-              Des leaders dévoués coordonnant les groupes d'âge et les expressions liturgiques de notre paroisse.
+              Des leaders dévoués coordonnant les groupes d'âge et les expressions spirituelles de notre Église.
             </p>
           </div>
 

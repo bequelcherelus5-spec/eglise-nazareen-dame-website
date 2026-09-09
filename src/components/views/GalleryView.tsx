@@ -65,7 +65,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ onNavigate }) => {
       icon: <Trees className="h-4 w-4 text-amber-400" />,
       badge: "Cadre Naturel",
       year: "2026",
-      caption: "Espace vert, cour de récréation et environnement serein entourant le complexe paroissial à la 3ème Section."
+      caption: "Espace vert, cour de récréation et environnement serein entourant l'enceinte de l'Église à la 3ème Section."
     },
     {
       id: 'culte-1',

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CHURCH_INFO } from '../data/churchData';
 import { PageTab } from '../types';
 import { apiService } from '../services/apiService';
+import churchSealImg from '../assets/images/regenerated_image_1788986795931.jpg';
 import { 
   MapPin, 
   Phone, 
@@ -36,6 +37,17 @@ export const Footer: React.FC<FooterProps> = ({
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterName, setNewsletterName] = useState('');
   const [newsletterStatus, setNewsletterStatus] = useState<{ loading: boolean; message: string; success: boolean } | null>(null);
+
+  // Embedded Mailchimp Connected Site Script loader
+  useEffect(() => {
+    if (!document.getElementById('mcjs')) {
+      const script = document.createElement('script');
+      script.id = 'mcjs';
+      script.async = true;
+      script.src = 'https://chimpstatic.com/mcjs-connected/js/users/13b1200976be723f2e377ba7c/7ddfdff34a3fa1b177eeff889.js';
+      document.head.appendChild(script);
+    }
+  }, []);
 
   const handleNav = (tab: PageTab) => {
     if (onNavigate) {
@@ -98,7 +110,7 @@ export const Footer: React.FC<FooterProps> = ({
               Vous êtes toujours bienvenu à l'Église de Damé
             </h3>
             <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-              Recevez les annonces paroissiales, les dates des baptêmes et les nouvelles de nos œuvres éducatives et sociales directement par email.
+              Recevez les annonces de l'Église, les dates des baptêmes et les nouvelles de nos œuvres éducatives et sociales directement par email.
             </p>
           </div>
 
@@ -107,7 +119,7 @@ export const Footer: React.FC<FooterProps> = ({
             <form onSubmit={handleNewsletterSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 space-y-3 backdrop-blur-xs">
               <span className="text-xs font-bold text-white flex items-center gap-2">
                 <Mail className="h-4 w-4 text-[#D4AF37]" />
-                Lettre Pastorale & Newsletter Paroissiale
+                Lettre Pastorale & Newsletter de l'Église (Mailchimp)
               </span>
 
               {newsletterStatus && (
@@ -165,15 +177,16 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <img 
-                src="/images/logo.svg" 
+                src={churchSealImg} 
                 alt="Logo Église de Damé" 
-                className="h-12 w-12 object-contain bg-white/10 p-1.5 rounded-xl border border-white/20"
+                referrerPolicy="no-referrer"
+                className="h-12 w-12 object-contain bg-[#081B36] p-1 rounded-xl border border-[#D4AF37]/40 shadow-xs"
               />
               <div>
                 <h4 className="font-bold text-white text-sm font-display tracking-wide">
                   {CHURCH_INFO.name}
                 </h4>
-                <p className="text-xs text-[#D4AF37] font-medium">District Bas Nord-Ouest • Haïti</p>
+                <p className="text-xs text-[#D4AF37] font-medium">3ème Section Damé • Môle-Saint-Nicolas, Haïti</p>
               </div>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
@@ -251,12 +264,12 @@ export const Footer: React.FC<FooterProps> = ({
                 <span className="text-slate-300">Culte d'Adoration & Prédication</span>
               </div>
               <div className="bg-slate-800/60 p-2.5 rounded-lg border border-slate-700/50">
-                <span className="text-[#D4AF37] font-bold block">Dimanche Après-midi (16h00)</span>
-                <span className="text-slate-300">École du Dimanche pour Tous</span>
+                <span className="text-[#D4AF37] font-bold block">Dimanche Soir (17h00 - 19h00)</span>
+                <span className="text-slate-300">Réunion de Prière</span>
               </div>
               <div className="bg-slate-800/60 p-2.5 rounded-lg border border-slate-700/50">
-                <span className="text-[#D4AF37] font-bold block">Mercredi (18h00 - 19h30)</span>
-                <span className="text-slate-300">Étude Biblique Doctrinale</span>
+                <span className="text-[#D4AF37] font-bold block">Mardi Soir (17h00 - 19h00)</span>
+                <span className="text-slate-300">Réunion de Prière & Étude Biblique</span>
               </div>
               <div className="bg-slate-800/60 p-2.5 rounded-lg border border-slate-700/50">
                 <span className="text-[#D4AF37] font-bold block">Vendredi (18h00 - 19h45)</span>
@@ -265,7 +278,7 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
           </div>
 
-          {/* Col 4: Coordonnées & District */}
+          {/* Col 4: Coordonnées & Paroisse */}
           <div className="space-y-4">
             <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">
               Siège & Coordonnées
@@ -296,8 +309,8 @@ export const Footer: React.FC<FooterProps> = ({
             </ul>
 
             <div className="pt-2 border-t border-slate-700/60 text-[11px] text-slate-400">
-              <span className="block font-semibold text-slate-300">District Bas Nord-Ouest</span>
-              <span>Église du Nazaréen Région Caraïbe</span>
+              <span className="block font-semibold text-slate-300">Église de Damé</span>
+              <span>Commune de Môle-Saint-Nicolas, Haïti</span>
             </div>
 
             {/* Accès clairement identifiable Espace Secrétariat */}
@@ -332,7 +345,7 @@ export const Footer: React.FC<FooterProps> = ({
               id="footer-bottom-secretariat-btn"
               onClick={() => handleNav('admin-login')}
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-[#D4AF37] text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-[#D4AF37] font-semibold text-xs transition-all shadow-xs cursor-pointer group"
-              title="Portail de connexion du Secrétariat Paroissial"
+              title="Portail de connexion du Secrétariat de l'Église"
             >
               <Lock className="h-3.5 w-3.5 text-[#D4AF37] group-hover:text-slate-950 transition-colors" />
               <span>Espace Secrétariat</span>

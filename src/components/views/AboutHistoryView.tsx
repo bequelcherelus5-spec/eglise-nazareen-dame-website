@@ -66,7 +66,7 @@ export const AboutHistoryView: React.FC = () => {
             </div>
             <h3 className="text-lg font-bold font-display text-[#0F2C59] mb-2">Notre Mission</h3>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Faire des disciples à l'image du Christ dans la 3ème Section Damé et le District Bas Nord-Ouest, en proclamant l'Évangile intégral qui transforme les cœurs, restaure les familles et élève la communauté.
+              Faire des disciples à l'image du Christ dans la 3ème Section Damé et ses environs, en proclamant l'Évangile intégral qui transforme les cœurs, restaure les familles et élève la communauté.
             </p>
           </div>
 

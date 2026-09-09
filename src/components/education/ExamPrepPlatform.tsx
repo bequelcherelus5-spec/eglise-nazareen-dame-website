@@ -370,7 +370,7 @@ export const ExamPrepPlatform: React.FC = () => {
             <Award className="h-8 w-8 text-[#D4AF37] shrink-0" />
             <div className="text-left text-xs">
               <div className="font-bold text-white">Programme Officiel d'Examens</div>
-              <div className="text-[11px] text-slate-300">Haïti • District Bas Nord-Ouest</div>
+              <div className="text-[11px] text-slate-300">MENFP Haïti • Môle-Saint-Nicolas</div>
             </div>
           </div>
         </div>

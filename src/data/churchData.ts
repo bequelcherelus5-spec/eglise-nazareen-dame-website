@@ -1,5 +1,6 @@
 import { ChurchLeader, ChurchTimelineEvent, Ministry, EpndCourse, SocialProject, NewsArticle, MediaItem } from '../types';
 import culteImg from '../assets/images/regenerated_image_1788671014993.png';
+import jniYouthImg from '../assets/images/regenerated_image_1788987892951.jpg';
 
 export const CHURCH_INFO = {
   name: "ÉGLISE DU NAZARÉEN DE DAMÉ",
@@ -9,7 +10,7 @@ export const CHURCH_INFO = {
   phone: "+509 48596089",
   email: "eglisedunazareendedame@gmail.com",
   domain: "www.eglisedunazareendedame.org",
-  district: "District Bas Nord-Ouest",
+  district: "3ème Section Damé, Môle-Saint-Nicolas",
   founder: "Saurel ALCINÉ (23 décembre 1979)",
   leadPastor: "Pasteur Bequel CHERELUS (Depuis 2003)",
   membership: "500 à 700 membres",
@@ -23,8 +24,8 @@ export const CHURCH_INFO = {
   },
   openingHours: [
     { day: "Dimanche", time: "08h00 - 11h30", title: "Culte d'Adoration & Célébration", desc: "Louange, Sainte Cène et prédication de la Parole" },
-    { day: "Dimanche", time: "16h00 - 17h30", title: "École du Dimanche pour Tous", desc: "Classes d'études bibliques par tranche d'âge" },
-    { day: "Mercredi", time: "18h00 - 19h30", title: "Étude Biblique Approfondie", desc: "Exégèse et affermissement doctrinal" },
+    { day: "Dimanche", time: "17h00 - 19h00", title: "Réunion de Prière", desc: "Prière d'intercession, supplication et communion spirituelle" },
+    { day: "Mardi", time: "17h00 - 19h00", title: "Réunion de Prière & Étude Biblique", desc: "Prière d'intercession, étude approfondie de la Parole de Dieu et affermissement doctrinal" },
     { day: "Vendredi", time: "18h00 - 19h45", title: "Réunion de Prière & Intercession", desc: "Combat spirituel, prières pour les malades et la communauté" },
     { day: "Samedi", time: "15h00 - 17h00", title: "Rassemblement JNI & Répétitions", desc: "Jeunesse Nazaréenne Internationale et chorales" },
   ]
@@ -51,7 +52,7 @@ export const CHURCH_TIMELINE: ChurchTimelineEvent[] = [
     year: 1992,
     title: "Transition Ministérielle",
     subtitle: "Consolidation pastorale",
-    description: "Période de transition de leadership ayant permis l'ancrage institutionnel au sein du District Bas Nord-Ouest et la restructuration des départements.",
+    description: "Période de transition de leadership ayant permis l'ancrage institutionnel de l'Église et la restructuration des départements.",
     iconName: "Users",
     badge: "Croissance"
   },
@@ -94,7 +95,7 @@ export const CHURCH_COUNCIL: ChurchLeader[] = [
     name: "Pasteur Bequel CHERELUS",
     role: "Pasteur Principal",
     department: "Direction Spirituelle & Générale",
-    bio: "En charge de l'Église du Nazaréen de Damé depuis 2003. Il conduit la vision pastorale, l'enseignement biblique et la coordination générale des œuvres communautaires et éducatives de la paroisse.",
+    bio: "En charge de l'Église du Nazaréen de Damé depuis 2003. Il conduit la vision pastorale, l'enseignement biblique et la coordination générale des œuvres communautaires et éducatives de l'Église.",
     period: "Depuis 2003"
   },
   {
@@ -368,7 +369,7 @@ export const NEWS_ARTICLES: NewsArticle[] = [
     content: [
       "L'Église du Nazaréen de Damé a vibré ce dimanche d'une louange fervente et d'une profonde ferveur spirituelle. Rassemblant plusieurs centaines de fidèles vêtus de blanc et aux couleurs de la fête, le culte a été marqué par des prières d'intercession pour notre pays et notre communauté.",
       "Le Pasteur Bequel CHERELUS a exhorté l'assemblée en s'appuyant sur le passage d'Ébène-Ézer (1 Samuel 7:12) : « Jusqu'ici l'Éternel nous a secourus ». Il a rappelé que la force de notre Église réside dans son attachement inaltérable au mandat de la sainteté.",
-      "Les témoignages de guérison, de délivrance et de soutien mutuel partagés par les membres ont fortifié la foi des participants. La chorale paroissiale a interprété des cantiques inspirés qui ont transporté la congrégation dans une sainte présence."
+      "Les témoignages de guérison, de délivrance et de soutien mutuel partagés par les membres ont fortifié la foi des participants. La chorale de l'Église a interprété des cantiques inspirés qui ont transporté la congrégation dans une sainte présence."
     ]
   },
   {
@@ -397,7 +398,7 @@ export const NEWS_ARTICLES: NewsArticle[] = [
     imageUrl: "/images/ecole_facade.jpg",
     content: [
       "L'École Professionnelle Nazaréen de Damé (EPND) annonce le début des inscriptions pour ses quatre filières phares. Conçus pour répondre aux besoins concrets de développement du Môle-Saint-Nicolas, ces programmes durent entre 6 et 10 mois.",
-      "Des bourses de scolarité partielle sont accordées aux jeunes en situation de précarité grâce au fonds de solidarité de l'Église. Les places étant limitées afin de garantir la pratique sur les équipements, il est recommandé de s'inscrire dès maintenant en ligne ou au secrétariat paroissial."
+      "Des bourses de scolarité partielle sont accordées aux jeunes en situation de précarité grâce au fonds de solidarité de l'Église. Les places étant limitées afin de garantir la pratique sur les équipements, il est recommandé de s'inscrire dès maintenant en ligne ou au secrétariat de l'Église."
     ]
   },
   {
@@ -407,7 +408,7 @@ export const NEWS_ARTICLES: NewsArticle[] = [
     date: "20 Décembre 2025",
     author: "Équipe Médicale & CDEJ",
     readTime: "4 min",
-    summary: "Une équipe soignante a examiné tous les enfants enregistrés au programme de parrainage holistique hébergé au sein de notre paroisse.",
+    summary: "Une équipe soignante a examiné tous les enfants enregistrés au programme de parrainage holistique hébergé au sein de notre Église.",
     imageUrl: "/images/comite.jpg",
     content: [
       "Pendant trois journées consécutives, les locaux de l'Église du Nazaréen de Damé ont accueilli les enfants du CDEJ pour leur visite médicale annuelle. Chaque enfant a bénéficié d'une évaluation de la croissance, d'un dépistage des carences et de distributions de vitamines et déparasitants.",
@@ -422,7 +423,7 @@ export const NEWS_ARTICLES: NewsArticle[] = [
     author: "Jimmy CHERELUS",
     readTime: "3 min",
     summary: "Plus de 200 jeunes ont pris part aux conférences thématiques, compétitions de jeux bibliques et temps de louange intensifs.",
-    imageUrl: "/images/logo.svg",
+    imageUrl: jniYouthImg,
     content: [
       "La Jeunesse Nazaréenne Internationale de notre assemblée a organisé un week-end d'impact sous la direction de son président Jimmy CHERELUS. Entre tournois de mémorisation biblique, louange dynamique et réflexions sur l'avenir, les jeunes ont réaffirmé leur attachement au Christ.",
       "Des trophées ont été remis aux vainqueurs des jeux bibliques, soulignant l'importance de s'enraciner profondément dans les Écritures."
@@ -455,7 +456,7 @@ export const MEDIA_GALLERY: MediaItem[] = [
   },
   {
     id: "culte-louange-chorale",
-    title: "Moments d'adoration avec la Chorale paroissiale",
+    title: "Moments d'adoration avec la Chorale de l'Église",
     type: "audio",
     date: "Janvier 2026",
     speaker: "Chorale dirigée par Carnette DAREUS",
@@ -486,8 +487,8 @@ export const MEDIA_GALLERY: MediaItem[] = [
     id: "photo-cour-paysage",
     title: "Le Sanctuaire, la Cour et l'Enceinte Récréative",
     type: "photo",
-    date: "Cadre de Vie Paroissial",
-    category: "Vie Paroissiale",
+    date: "Cadre de Vie de l'Église",
+    category: "Vie de l'Église",
     thumbnailUrl: "/images/cour_paysage.jpg",
     description: "Environnement extérieur verdoyant où les fidèles et les enfants de l'école se rassemblent à Fond Damé."
   }

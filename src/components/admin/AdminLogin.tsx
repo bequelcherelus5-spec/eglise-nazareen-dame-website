@@ -427,7 +427,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
         </div>
 
         <p className="mt-6 text-center text-[11px] text-slate-500">
-          Système sécurisé d'administration — Église du Nazaréen de Damé (District Bas Nord-Ouest).
+          Système sécurisé d'administration — Église du Nazaréen de Damé (Môle-Saint-Nicolas, Haïti).
         </p>
       </div>
     </div>

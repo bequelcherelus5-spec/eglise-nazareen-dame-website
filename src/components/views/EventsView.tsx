@@ -56,18 +56,8 @@ export const EventsView: React.FC<EventsViewProps> = ({
       date: '10 au 13 Avril 2026',
       time: '18h00 - 20h30',
       location: 'Cour paysagère de l\'Église & Sanctuaire',
-      description: 'Quatre soirées de proclamation évangélique, de prière de délivrance et de chants avec les chorales du District Bas Nord-Ouest.',
+      description: 'Quatre soirées de proclamation évangélique, de prière de délivrance et de chants avec les chorales et groupes de louange de la communauté.',
       category: 'Évangélisation',
-      highlight: false
-    },
-    {
-      id: 'convention-district',
-      title: 'Convention Annuelle du District Bas Nord-Ouest',
-      date: 'Juillet 2026',
-      time: 'Session plénière',
-      location: 'Môle-Saint-Nicolas / Damé',
-      description: 'Rassemblement des pasteurs, délégués laïcs et membres des églises nazaréennes de tout le Nord-Ouest pour la formation et le rapport de district.',
-      category: 'District Nazaréen',
       highlight: false
     },
     {

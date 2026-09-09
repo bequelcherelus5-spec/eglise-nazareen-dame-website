@@ -173,10 +173,10 @@ export const ContactView: React.FC = () => {
               </ul>
 
               <div className="pt-4 border-t border-slate-100 text-xs text-slate-500 space-y-1.5">
-                <div>District ecclésial : <strong className="text-slate-800">{CHURCH_INFO.district}</strong></div>
+                <div>Localisation : <strong className="text-slate-800">3ème Section Damé, Môle-Saint-Nicolas</strong></div>
                 <div>Fondateur : <strong className="text-slate-800">{CHURCH_INFO.founder}</strong></div>
                 <div>Pasteur Principal : <strong className="text-slate-800">{CHURCH_INFO.leadPastor}</strong></div>
-                <div>Effectif paroissial : <strong className="text-slate-800">{CHURCH_INFO.membership}</strong></div>
+                <div>Effectif de l'Église : <strong className="text-slate-800">{CHURCH_INFO.membership}</strong></div>
               </div>
             </div>
 

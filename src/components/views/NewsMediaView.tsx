@@ -84,7 +84,7 @@ export const NewsMediaView: React.FC<NewsMediaViewProps> = ({ initialArticleId }
             Actualités, Enseignements & Médias
           </h1>
           <p className="mt-3 text-sm sm:text-base text-slate-200 leading-relaxed">
-            Nourrissez votre foi à travers les comptes-rendus de la vie paroissiale, les prédications audio/vidéo et les reportages de nos œuvres.
+            Nourrissez votre foi à travers les comptes-rendus de la vie de notre Église, les prédications audio/vidéo et les reportages de nos œuvres.
           </p>
 
           {/* Subtabs Articles vs Medias */}
@@ -213,7 +213,7 @@ export const NewsMediaView: React.FC<NewsMediaViewProps> = ({ initialArticleId }
                 { id: 'tous', label: 'Tout voir' },
                 { id: 'audio', label: 'Prédications Audio' },
                 { id: 'video', label: 'Vidéos & Cultes' },
-                { id: 'photo', label: 'Photos de la Paroisse' }
+                { id: 'photo', label: "Photos de l'Église" }
               ].map((f) => (
                 <button
                   key={f.id}
@@ -328,7 +328,7 @@ export const NewsMediaView: React.FC<NewsMediaViewProps> = ({ initialArticleId }
                       </button>
                     ) : (
                       <span className="text-[11px] text-slate-400 italic block text-center">
-                        Photographie paroissiale archivée
+                        Photographie de l'Église archivée
                       </span>
                     )}
                   </div>

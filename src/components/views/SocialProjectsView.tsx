@@ -132,7 +132,7 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
               Fondation Digicel <span className="text-xs block text-slate-400 font-sans font-normal">(Élevage Caprin 2026)</span>
             </div>
             <div className="font-display font-bold text-lg sm:text-xl text-slate-700">
-              Église du Nazaréen <span className="text-xs block text-slate-400 font-sans font-normal">(District Bas Nord-Ouest)</span>
+              Église du Nazaréen <span className="text-xs block text-slate-400 font-sans font-normal">(Région Méso-Amérique / Haïti)</span>
             </div>
           </div>
         </div>

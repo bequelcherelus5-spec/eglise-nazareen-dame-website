@@ -146,7 +146,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({ isOpen, onClose })
                 </div>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Pour tout envoi depuis les États-Unis, le Canada ou la France, communiquez directement avec le secrétariat pastoral au <span className="font-semibold">{CHURCH_INFO.phone}</span> ou par email à <span className="font-semibold">{CHURCH_INFO.email}</span> afin d'obtenir les coordonnées de l'intermédiaire agréé du District.
+                Pour tout envoi depuis les États-Unis, le Canada ou la France, communiquez directement avec le secrétariat pastoral au <span className="font-semibold">{CHURCH_INFO.phone}</span> ou par email à <span className="font-semibold">{CHURCH_INFO.email}</span> afin d'obtenir les coordonnées de transfert agréées par la paroisse.
               </p>
             </div>
           </div>
