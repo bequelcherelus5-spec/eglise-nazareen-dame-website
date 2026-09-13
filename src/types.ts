@@ -19,7 +19,9 @@ export type PageTab =
   | 'contact'
   | 'admin'
   | 'secretariat'
-  | 'admin-login';
+  | 'admin-login'
+  | 'confidentialite'
+  | 'conditions';
 
 export interface ChurchTimelineEvent {
   year: number;

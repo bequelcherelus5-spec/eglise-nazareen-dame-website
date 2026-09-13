@@ -21,6 +21,8 @@ import { NewsMediaView } from './components/views/NewsMediaView';
 import { BibleGamesView } from './components/views/BibleGamesView';
 import { ContactView } from './components/views/ContactView';
 import { PodcastView } from './components/views/PodcastView';
+import { PrivacyPolicyView } from './components/views/PrivacyPolicyView';
+import { TermsView } from './components/views/TermsView';
 
 // Admin Components
 import { AdminLogin } from './components/admin/AdminLogin';
@@ -53,7 +55,9 @@ const validViews: PageTab[] = [
   'contact',
   'podcast',
   'admin',
-  'admin-login'
+  'admin-login',
+  'confidentialite',
+  'conditions'
 ];
 
 const normalizeView = (raw: string): PageTab => {
@@ -96,6 +100,14 @@ const normalizeView = (raw: string): PageTab => {
     case 'projects': return 'projets';
     case 'jeux-bibliques':
     case 'bible-games': return 'jeux-bibliques';
+    case 'politique-de-confidentialite':
+    case 'confidentialite':
+    case 'privacy':
+    case 'privacy-policy': return 'confidentialite';
+    case 'conditions-d-utilisation':
+    case 'conditions':
+    case 'terms':
+    case 'terms-of-service': return 'conditions';
     case 'admin':
     case 'dashboard':
     case 'secretariat':
@@ -310,6 +322,16 @@ export default function App() {
         {/* 15. Podcasts & Messages Audio */}
         {currentView === 'podcast' && (
           <PodcastView onNavigate={handleNavigate} />
+        )}
+
+        {/* 15b. Politique de Confidentialité (Conformité Google AdSense) */}
+        {currentView === 'confidentialite' && (
+          <PrivacyPolicyView onNavigate={handleNavigate} />
+        )}
+
+        {/* 15c. Conditions Générales d'Utilisation */}
+        {currentView === 'conditions' && (
+          <TermsView onNavigate={handleNavigate} />
         )}
 
         {/* 16. Admin Login */}

@@ -1,6 +1,4 @@
-import { ChurchLeader, ChurchTimelineEvent, Ministry, EpndCourse, SocialProject, NewsArticle, MediaItem } from '../types';
-import culteImg from '../assets/images/regenerated_image_1788671014993.png';
-import jniYouthImg from '../assets/images/regenerated_image_1788987892951.jpg';
+import { ChurchLeader, ChurchTimelineEvent, Ministry, EpndCourse, SocialProject, MediaItem } from '../types';
 
 export const CHURCH_INFO = {
   name: "ÉGLISE DU NAZARÉEN DE DAMÉ",
@@ -356,80 +354,7 @@ export const SOCIAL_PROJECTS: SocialProject[] = [
   }
 ];
 
-export const NEWS_ARTICLES: NewsArticle[] = [
-  {
-    id: "culte-reconnaissance-2026",
-    title: "Culte solennel d'action de grâce : Témoignages de la fidélité de Dieu à Damé",
-    category: "Spiritualité",
-    date: "1er Février 2026",
-    author: "Pasteur Bequel CHERELUS",
-    readTime: "4 min",
-    summary: "Retour sur un dimanche mémorable où l'assemblée s'est rassemblée pour glorifier l'Éternel et célébrer les bénédictions accordées à l'Église.",
-    imageUrl: culteImg,
-    content: [
-      "L'Église du Nazaréen de Damé a vibré ce dimanche d'une louange fervente et d'une profonde ferveur spirituelle. Rassemblant plusieurs centaines de fidèles vêtus de blanc et aux couleurs de la fête, le culte a été marqué par des prières d'intercession pour notre pays et notre communauté.",
-      "Le Pasteur Bequel CHERELUS a exhorté l'assemblée en s'appuyant sur le passage d'Ébène-Ézer (1 Samuel 7:12) : « Jusqu'ici l'Éternel nous a secourus ». Il a rappelé que la force de notre Église réside dans son attachement inaltérable au mandat de la sainteté.",
-      "Les témoignages de guérison, de délivrance et de soutien mutuel partagés par les membres ont fortifié la foi des participants. La chorale de l'Église a interprété des cantiques inspirés qui ont transporté la congrégation dans une sainte présence."
-    ]
-  },
-  {
-    id: "lancement-projet-elevage-digicel",
-    title: "Partenariat d'impact : Lancement du projet d'élevage caprin avec la Fondation Digicel",
-    category: "Communauté",
-    date: "15 Janvier 2026",
-    author: "Conseil d'Administration",
-    readTime: "5 min",
-    summary: "L'Église officialise son initiative majeure avec la Fondation Digicel pour soutenir 80+ familles par le don rotatif d'animaux d'élevage.",
-    imageUrl: "/images/cour_paysage.jpg",
-    content: [
-      "Dans le cadre de son engagement social en faveur de la 3ème Section Damé, l'Église du Nazaréen annonce fièrement le démarrage des préparatifs pour le projet d'élevage caprin avec le soutien de la Fondation Digicel.",
-      "Ce programme vise à fournir à des ménages vulnérables des couples de caprins reproducteurs ainsi qu'une formation technique en santé animale. Le mécanisme communautaire prévoit que le premier chevreau né soit rétrocédé à une autre famille enregistrée, assurant ainsi la pérennité du projet.",
-      "Le Pasteur Bequel CHERELUS a souligné : « L'Évangile doit toucher l'esprit, l'âme et le corps. Offrir un moyen de subsistance digne à nos concitoyens participe directement de notre témoignage chrétien »."
-    ]
-  },
-  {
-    id: "epnd-inscriptions-nouvelle-promotion",
-    title: "École Professionnelle EPND : Inscriptions ouvertes pour la nouvelle session",
-    category: "Éducation",
-    date: "10 Janvier 2026",
-    author: "Direction EPND",
-    readTime: "3 min",
-    summary: "Les filières de Couture, Maçonnerie, Musique et Anglais accueillent les candidatures des jeunes et adultes pour la session semestrielle.",
-    imageUrl: "/images/ecole_facade.jpg",
-    content: [
-      "L'École Professionnelle Nazaréen de Damé (EPND) annonce le début des inscriptions pour ses quatre filières phares. Conçus pour répondre aux besoins concrets de développement du Môle-Saint-Nicolas, ces programmes durent entre 6 et 10 mois.",
-      "Des bourses de scolarité partielle sont accordées aux jeunes en situation de précarité grâce au fonds de solidarité de l'Église. Les places étant limitées afin de garantir la pratique sur les équipements, il est recommandé de s'inscrire dès maintenant en ligne ou au secrétariat de l'Église."
-    ]
-  },
-  {
-    id: "cdej-bilan-sante-annuel",
-    title: "Centre CDEJ / Compassion International : Grand bilan pédiatrique pour 250+ enfants",
-    category: "Communauté",
-    date: "20 Décembre 2025",
-    author: "Équipe Médicale & CDEJ",
-    readTime: "4 min",
-    summary: "Une équipe soignante a examiné tous les enfants enregistrés au programme de parrainage holistique hébergé au sein de notre Église.",
-    imageUrl: "/images/comite.jpg",
-    content: [
-      "Pendant trois journées consécutives, les locaux de l'Église du Nazaréen de Damé ont accueilli les enfants du CDEJ pour leur visite médicale annuelle. Chaque enfant a bénéficié d'une évaluation de la croissance, d'un dépistage des carences et de distributions de vitamines et déparasitants.",
-      "Nous remercions chaleureusement les parrains et marraines de Compassion International dont la générosité continue de transformer des vies dans le Nord-Ouest d'Haïti."
-    ]
-  },
-  {
-    id: "conference-jeunesse-jni",
-    title: "Grand rassemblement JNI : « Une jeunesse consacrée et engagée pour Damé »",
-    category: "Jeunesse",
-    date: "18 Novembre 2025",
-    author: "Jimmy CHERELUS",
-    readTime: "3 min",
-    summary: "Plus de 200 jeunes ont pris part aux conférences thématiques, compétitions de jeux bibliques et temps de louange intensifs.",
-    imageUrl: jniYouthImg,
-    content: [
-      "La Jeunesse Nazaréenne Internationale de notre assemblée a organisé un week-end d'impact sous la direction de son président Jimmy CHERELUS. Entre tournois de mémorisation biblique, louange dynamique et réflexions sur l'avenir, les jeunes ont réaffirmé leur attachement au Christ.",
-      "Des trophées ont été remis aux vainqueurs des jeux bibliques, soulignant l'importance de s'enraciner profondément dans les Écritures."
-    ]
-  }
-];
+export { NEWS_ARTICLES } from './churchArticles';
 
 export const MEDIA_GALLERY: MediaItem[] = [
   {

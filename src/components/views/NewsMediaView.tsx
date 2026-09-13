@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NEWS_ARTICLES, MEDIA_GALLERY } from '../../data/churchData';
 import { NewsArticle, MediaItem } from '../../types';
+import { AdSenseUnit } from '../ads/AdSenseUnit';
 import { 
   Search, 
   Filter, 
@@ -201,6 +202,9 @@ export const NewsMediaView: React.FC<NewsMediaViewProps> = ({ initialArticleId }
                 ))}
               </div>
             )}
+
+            {/* Google AdSense Unit - Conformité éditoriale sur page textuelle */}
+            <AdSenseUnit slot="7382968203" format="auto" />
           </div>
         )}
 
@@ -398,6 +402,9 @@ export const NewsMediaView: React.FC<NewsMediaViewProps> = ({ initialArticleId }
                   <p key={pIdx}>{paragraph}</p>
                 ))}
               </div>
+
+              {/* Google AdSense Unit dans l'article de fond */}
+              <AdSenseUnit slot="7382968203" format="auto" />
 
               {/* Related articles suggestion */}
               <div className="pt-6 border-t border-slate-100">

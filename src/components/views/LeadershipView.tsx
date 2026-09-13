@@ -3,6 +3,7 @@ import { CHURCH_INFO, CHURCH_COUNCIL, DEPARTMENT_LEADERS } from '../../data/chur
 import { CHURCH_ASSETS } from '../../data/churchMedia';
 import { ImageModal } from '../ImageModal';
 import { OfficialPhoto } from '../OfficialPhoto';
+import { AdSenseUnit } from '../ads/AdSenseUnit';
 import { 
   Users, 
   Sparkles, 
@@ -238,6 +239,11 @@ export const LeadershipView: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Emplacement publicitaire Google AdSense conforme */}
+        <div className="pt-6">
+          <AdSenseUnit slot="7382968203" format="auto" />
         </div>
       </section>
 

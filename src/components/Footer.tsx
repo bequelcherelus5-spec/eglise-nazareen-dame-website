@@ -241,27 +241,57 @@ export const Footer: React.FC<FooterProps> = ({
           </div>
         </div>
 
-        {/* Bottom Legal bar */}
-        <div className="mt-12 pt-6 border-t border-slate-800 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />
+        {/* Bottom Legal & Mandatory Compliance Links Bar */}
+        <div className="mt-12 pt-6 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+          <div className="flex items-center gap-2 text-center md:text-left">
+            <ShieldCheck className="h-4 w-4 text-[#D4AF37] shrink-0" />
             <span>
               © 1979 - 2026 {CHURCH_INFO.name}. Tous droits réservés.
             </span>
           </div>
           
-          <div className="flex items-center gap-4 text-[11px] text-slate-400">
-            <span>Devise : « Sainteté à l’Éternel »</span>
+          {/* Liens légaux indispensables pour l'approbation Google AdSense */}
+          <nav aria-label="Liens légaux" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[12px]">
+            <button
+              onClick={() => handleNav('a-propos')}
+              className="hover:text-[#D4AF37] text-slate-300 transition-colors cursor-pointer"
+            >
+              À Propos
+            </button>
             <span className="text-slate-600">•</span>
-            {/* Accès clairement identifiable Espace Secrétariat */}
+            <button
+              onClick={() => handleNav('confidentialite')}
+              className="hover:text-[#D4AF37] text-slate-300 transition-colors cursor-pointer"
+            >
+              Politique de Confidentialité
+            </button>
+            <span className="text-slate-600">•</span>
+            <button
+              onClick={() => handleNav('conditions')}
+              className="hover:text-[#D4AF37] text-slate-300 transition-colors cursor-pointer"
+            >
+              Conditions d'Utilisation
+            </button>
+            <span className="text-slate-600">•</span>
+            <button
+              onClick={() => handleNav('contact')}
+              className="hover:text-[#D4AF37] text-slate-300 transition-colors cursor-pointer"
+            >
+              Contact
+            </button>
+          </nav>
+
+          <div className="flex items-center gap-3 text-[11px] text-slate-400">
+            <span className="hidden sm:inline">« Sainteté à l’Éternel »</span>
+            {/* Accès Espace Secrétariat */}
             <button
               id="footer-bottom-secretariat-btn"
               onClick={() => handleNav('admin-login')}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-[#D4AF37] text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-[#D4AF37] font-semibold text-xs transition-all shadow-xs cursor-pointer group"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-[#D4AF37] text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-[#D4AF37] font-semibold text-xs transition-all shadow-xs cursor-pointer group"
               title="Portail de connexion du Secrétariat de l'Église"
             >
-              <Lock className="h-3.5 w-3.5 text-[#D4AF37] group-hover:text-slate-950 transition-colors" />
-              <span>Espace Secrétariat</span>
+              <Lock className="h-3 w-3 text-[#D4AF37] group-hover:text-slate-950 transition-colors" />
+              <span>Secrétariat</span>
             </button>
           </div>
         </div>

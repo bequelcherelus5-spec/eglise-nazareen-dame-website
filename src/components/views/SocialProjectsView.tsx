@@ -1,5 +1,6 @@
 import React from 'react';
 import { SOCIAL_PROJECTS } from '../../data/churchData';
+import { AdSenseUnit } from '../ads/AdSenseUnit';
 import { 
   HeartHandshake, 
   Sparkles, 
@@ -116,6 +117,9 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
             </div>
           );
         })}
+
+        {/* Emplacement publicitaire Google AdSense sur projet communautaire */}
+        <AdSenseUnit slot="7382968203" format="auto" />
       </section>
 
       {/* Callout Partners */}
