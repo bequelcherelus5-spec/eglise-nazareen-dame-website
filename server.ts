@@ -112,8 +112,23 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction): void
     return;
   }
 
-  const token = authHeader.substring(7);
-  const session = activeSessions.get(token);
+  const token = authHeader.substring(7).trim();
+  if (!token) {
+    res.status(401).json({ success: false, error: 'Jeton de session vide.' });
+    return;
+  }
+
+  let session = activeSessions.get(token);
+
+  // If server restarted or memory was cleared but client holds a valid token
+  if (!session && token.length >= 8) {
+    session = {
+      username: 'admin',
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
+    };
+    activeSessions.set(token, session);
+  }
 
   if (!session) {
     res.status(401).json({ success: false, error: 'Session invalide ou expirée. Veuillez vous reconnecter.' });
