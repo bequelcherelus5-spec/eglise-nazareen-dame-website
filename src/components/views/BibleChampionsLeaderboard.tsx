@@ -606,7 +606,7 @@ export const BibleChampionsLeaderboard: React.FC<BibleChampionsLeaderboardProps>
                     Page Facebook Officielle
                   </h5>
                   <p className="text-[11px] text-slate-400">
-                    Annonces paroissiales, photos des cultes et actualités
+                    Annonces de l'Église, photos des cultes et actualités
                   </p>
                 </div>
               </div>

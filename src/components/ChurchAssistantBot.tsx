@@ -137,7 +137,7 @@ export const ChurchAssistantBot: React.FC<ChurchAssistantBotProps> = ({ onNaviga
   };
 
   return (
-    <aside aria-label="Assistant Paroissial et Ministères" className="fixed bottom-5 right-5 z-40">
+    <aside aria-label="Assistant de l'Église et Ministères" className="fixed bottom-5 right-5 z-40">
       {/* Floating launcher trigger */}
       {!isOpen && (
         <button
@@ -159,7 +159,7 @@ export const ChurchAssistantBot: React.FC<ChurchAssistantBotProps> = ({ onNaviga
           </div>
           <div className="hidden sm:block text-left pr-1">
             <div className="text-[10px] uppercase font-extrabold tracking-wider text-[#D4AF37]">
-              Guide Paroissial
+              Guide de l'Église
             </div>
             <div className="text-xs font-bold text-white flex items-center gap-1">
               <span>Une question sur le ministère ?</span>
@@ -184,7 +184,7 @@ export const ChurchAssistantBot: React.FC<ChurchAssistantBotProps> = ({ onNaviga
               </div>
               <div>
                 <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 leading-tight">
-                  <span>Guide Paroissial & Ministères</span>
+                  <span>Guide de l'Église & Ministères</span>
                   <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 </h3>
                 <p className="text-[10px] text-[#D4AF37] font-medium leading-none mt-0.5">

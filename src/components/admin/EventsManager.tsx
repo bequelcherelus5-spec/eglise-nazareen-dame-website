@@ -46,7 +46,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({ eventSubmissions =
     startTime: '08:00',
     endTime: '12:00',
     location: 'Sanctuaire Principal, Rue Cimetière Damé',
-    organizer: 'Secrétariat & Conseil Paroissial',
+    organizer: 'Secrétariat & Conseil de l\'Église',
     category: 'Culte & Célébration',
     status: 'Publié' as 'Publié' | 'Brouillon' | 'Terminé' | 'Annulé',
     highlight: false
@@ -88,7 +88,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({ eventSubmissions =
       startTime: '08:00',
       endTime: '12:00',
       location: 'Sanctuaire Principal, Rue Cimetière Damé',
-      organizer: 'Secrétariat & Conseil Paroissial',
+      organizer: 'Secrétariat & Conseil de l\'Église',
       category: 'Culte & Célébration',
       status: 'Publié',
       highlight: false
@@ -106,7 +106,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({ eventSubmissions =
       startTime: evt.startTime || '08:00',
       endTime: evt.endTime || '12:00',
       location: evt.location || 'Sanctuaire Principal, Rue Cimetière Damé',
-      organizer: evt.organizer || 'Secrétariat & Conseil Paroissial',
+      organizer: evt.organizer || 'Secrétariat & Conseil de l\'Église',
       category: evt.category || 'Culte & Célébration',
       status: evt.status as any || 'Publié',
       highlight: Boolean(evt.highlight)
@@ -239,7 +239,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({ eventSubmissions =
           <div className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-[#D4AF37]" />
             <h3 className="text-base font-bold font-display text-slate-900">
-              Gestion des Événements & Calendrier Paroissial
+              Gestion des Événements & Calendrier de l'Église
             </h3>
           </div>
           <p className="text-xs text-slate-500 mt-1">

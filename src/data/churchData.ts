@@ -109,7 +109,7 @@ export const CHURCH_COUNCIL: ChurchLeader[] = [
     name: "Nineder CILLAS",
     role: "Secrétaire",
     department: "Secrétariat Général",
-    bio: "Supervise la tenue des registres paroissiaux, la correspondance officielle de l'Église et la documentation des procès-verbaux des assemblées.",
+    bio: "Supervise la tenue des registres de l'Église, la correspondance officielle et la documentation des procès-verbaux des assemblées.",
     period: "Membre actif"
   },
   {
@@ -194,7 +194,7 @@ export const MINISTRIES_LIST: Ministry[] = [
     name: "Ministère des Enfants & École du Dimanche",
     targetAudience: "Enfants de 3 à 12 ans",
     leader: "[À COMPLÉTER]",
-    schedule: "Dimanche 16h00",
+    schedule: "Dimanche matin (pendant le culte)",
     description: "Transmettre les récits bibliques, l'amour du Christ et les principes de vie chrétienne dès le plus jeune âge dans un environnement pédagogique joyeux et sécurisé.",
     activities: ["Leçons bibliques illustrées", "Mémorisation de versets", "Chants et animations récréatives", "Fêtes bibliques annuelles"],
     icon: "Baby"

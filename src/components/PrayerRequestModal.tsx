@@ -49,7 +49,7 @@ export const PrayerRequestModal: React.FC<PrayerRequestModalProps> = ({ isOpen, 
 
     try {
       await apiService.submitForm({
-        name: formData.name.trim() || 'Fidèle de la Paroisse (Anonyme)',
+        name: formData.name.trim() || 'Fidèle de l\'Église (Anonyme)',
         phone: formData.phone.trim() || undefined,
         category: 'Prayer Requests',
         message: `[${formData.category}] ${formData.message.trim()}`,

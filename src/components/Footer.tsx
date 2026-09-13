@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CHURCH_INFO } from '../data/churchData';
 import { PageTab } from '../types';
-import { apiService } from '../services/apiService';
 import churchSealImg from '../assets/images/regenerated_image_1788986795931.jpg';
+import { MailchimpNewsletter } from './MailchimpNewsletter';
 import { 
   MapPin, 
   Phone, 
@@ -34,21 +34,6 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenPrayerModal,
   onOpenDonationModal
 }) => {
-  const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [newsletterName, setNewsletterName] = useState('');
-  const [newsletterStatus, setNewsletterStatus] = useState<{ loading: boolean; message: string; success: boolean } | null>(null);
-
-  // Embedded Mailchimp Connected Site Script loader
-  useEffect(() => {
-    if (!document.getElementById('mcjs')) {
-      const script = document.createElement('script');
-      script.id = 'mcjs';
-      script.async = true;
-      script.src = 'https://chimpstatic.com/mcjs-connected/js/users/13b1200976be723f2e377ba7c/7ddfdff34a3fa1b177eeff889.js';
-      document.head.appendChild(script);
-    }
-  }, []);
-
   const handleNav = (tab: PageTab) => {
     if (onNavigate) {
       onNavigate(tab);
@@ -56,30 +41,6 @@ export const Footer: React.FC<FooterProps> = ({
       onSelectTab(tab);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleNewsletterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newsletterEmail.trim()) return;
-
-    setNewsletterStatus({ loading: true, message: '', success: false });
-
-    try {
-      const res = await apiService.subscribeNewsletter(newsletterName.trim(), newsletterEmail.trim());
-      setNewsletterStatus({
-        loading: false,
-        message: res.message || 'Merci pour votre inscription à la newsletter !',
-        success: true
-      });
-      setNewsletterEmail('');
-      setNewsletterName('');
-    } catch {
-      setNewsletterStatus({
-        loading: false,
-        message: 'Inscription enregistrée.',
-        success: true
-      });
-    }
   };
 
   const navLinks: { tab: PageTab; label: string }[] = [
@@ -100,71 +61,23 @@ export const Footer: React.FC<FooterProps> = ({
 
   return (
     <footer className="bg-[#081B36] text-slate-300 border-t-4 border-[#D4AF37]">
-      {/* Top Pre-footer Call to Action & Newsletter */}
+      {/* Top Pre-footer Call to Action & Mailchimp Newsletter Embedded Form */}
       <div className="bg-[#0F2C59] py-10 px-4 sm:px-6 lg:px-8 border-b border-slate-700/50">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           
-          <div className="lg:col-span-6 space-y-2">
+          <div className="lg:col-span-5 space-y-3">
             <span className="text-xs uppercase tracking-widest text-[#D4AF37] font-bold">Communion & Fraternité</span>
-            <h3 className="text-2xl font-bold text-white font-display">
+            <h3 className="text-2xl sm:text-3xl font-bold text-white font-display">
               Vous êtes toujours bienvenu à l'Église de Damé
             </h3>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-              Recevez les annonces de l'Église, les dates des baptêmes et les nouvelles de nos œuvres éducatives et sociales directement par email.
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Recevez les annonces de l'Église, les dates des baptêmes, les messages spirituels et les nouvelles de nos œuvres éducatives et sociales directement par email.
             </p>
           </div>
 
-          {/* Newsletter Input Box */}
-          <div className="lg:col-span-6">
-            <form onSubmit={handleNewsletterSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 space-y-3 backdrop-blur-xs">
-              <span className="text-xs font-bold text-white flex items-center gap-2">
-                <Mail className="h-4 w-4 text-[#D4AF37]" />
-                Lettre Pastorale & Newsletter de l'Église (Mailchimp)
-              </span>
-
-              {newsletterStatus && (
-                <div className={`p-2.5 rounded-xl text-xs flex items-center gap-2 ${
-                  newsletterStatus.success 
-                    ? 'bg-emerald-900/60 text-emerald-200 border border-emerald-700' 
-                    : 'bg-rose-900/60 text-rose-200 border border-rose-700'
-                }`}>
-                  <CheckCircle2 className="h-4 w-4 shrink-0" />
-                  <span>{newsletterStatus.message}</span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <input
-                  type="text"
-                  value={newsletterName}
-                  onChange={(e) => setNewsletterName(e.target.value)}
-                  placeholder="Votre prénom et nom"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-700 text-xs text-white placeholder-slate-400 focus:ring-2 focus:ring-[#D4AF37] outline-none"
-                />
-                <input
-                  type="email"
-                  required
-                  value={newsletterEmail}
-                  onChange={(e) => setNewsletterEmail(e.target.value)}
-                  placeholder="Votre adresse email *"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-700 text-xs text-white placeholder-slate-400 focus:ring-2 focus:ring-[#D4AF37] outline-none"
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                <span className="text-[11px] text-slate-400">
-                  Inscription libre et respectueuse de votre vie privée.
-                </span>
-                <button
-                  type="submit"
-                  disabled={newsletterStatus?.loading}
-                  className="px-4 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#c59f2a] text-slate-950 text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-                >
-                  <Send className="h-3.5 w-3.5" />
-                  <span>{newsletterStatus?.loading ? 'Inscription...' : "S'abonner"}</span>
-                </button>
-              </div>
-            </form>
+          {/* Mailchimp Embedded Form */}
+          <div className="lg:col-span-7">
+            <MailchimpNewsletter />
           </div>
 
         </div>
@@ -278,7 +191,7 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
           </div>
 
-          {/* Col 4: Coordonnées & Paroisse */}
+          {/* Col 4: Coordonnées & Église */}
           <div className="space-y-4">
             <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">
               Siège & Coordonnées

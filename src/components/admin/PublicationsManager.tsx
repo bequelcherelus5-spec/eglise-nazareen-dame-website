@@ -42,17 +42,17 @@ export const PublicationsManager: React.FC<PublicationsManagerProps> = ({ onPubl
   // Form fields
   const [formData, setFormData] = useState({
     title: '',
-    category: 'Actualité Paroissiale',
+    category: 'Actualité de l\'Église',
     summary: '',
     content: '',
-    author: 'Secrétariat Paroissial',
+    author: 'Secrétariat de l\'Église',
     date: new Date().toISOString().split('T')[0],
     image: '/images/dame_facade.jpg',
     status: 'Publiée' as 'Publiée' | 'Brouillon' | 'Archivée'
   });
 
   const categories = [
-    'Actualité Paroissiale',
+    'Actualité de l\'Église',
     'Message Pastoral',
     'Enseignement & Foi',
     'Jeunesse & JNI',
@@ -81,10 +81,10 @@ export const PublicationsManager: React.FC<PublicationsManagerProps> = ({ onPubl
     setEditingPub(null);
     setFormData({
       title: '',
-      category: 'Actualité Paroissiale',
+      category: 'Actualité de l\'Église',
       summary: '',
       content: '',
-      author: 'Secrétariat Paroissial',
+      author: 'Secrétariat de l\'Église',
       date: new Date().toISOString().split('T')[0],
       image: '/images/dame_facade.jpg',
       status: 'Publiée'
@@ -124,7 +124,7 @@ export const PublicationsManager: React.FC<PublicationsManagerProps> = ({ onPubl
           category: formData.category,
           summary: formData.summary.trim() || formData.content.slice(0, 150) + '...',
           content: formData.content.trim(),
-          author: formData.author.trim() || 'Secrétariat Paroissial',
+          author: formData.author.trim() || 'Secrétariat de l\'Église',
           date: formData.date,
           image: formData.image,
           status: formData.status
@@ -141,7 +141,7 @@ export const PublicationsManager: React.FC<PublicationsManagerProps> = ({ onPubl
           category: formData.category,
           summary: formData.summary.trim() || formData.content.slice(0, 150) + '...',
           content: formData.content.trim(),
-          author: formData.author.trim() || 'Secrétariat Paroissial',
+          author: formData.author.trim() || 'Secrétariat de l\'Église',
           date: formData.date,
           image: formData.image,
           status: formData.status
@@ -230,7 +230,7 @@ export const PublicationsManager: React.FC<PublicationsManagerProps> = ({ onPubl
           <div className="flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-[#D4AF37]" />
             <h3 className="text-base font-bold font-display text-slate-900">
-              Publications & Actualités Paroissiales ({publications.length})
+              Publications & Actualités de l'Église ({publications.length})
             </h3>
           </div>
           <p className="text-xs text-slate-500 mt-1">
@@ -430,7 +430,7 @@ export const PublicationsManager: React.FC<PublicationsManagerProps> = ({ onPubl
                 <input
                   type="text"
                   required
-                  placeholder="Ex : Grande Convocation Paroissiale de Pâques..."
+                  placeholder="Ex : Grande Convocation de l'Église pour la Fête de Pâques..."
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#0F2C59] outline-none"
@@ -488,7 +488,7 @@ export const PublicationsManager: React.FC<PublicationsManagerProps> = ({ onPubl
                     type="text"
                     value={formData.author}
                     onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                    placeholder="Secrétariat Paroissial, Pasteur, etc."
+                    placeholder="Secrétariat de l'Église, Pasteur, etc."
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#0F2C59] outline-none"
                   />
                 </div>
@@ -529,7 +529,7 @@ export const PublicationsManager: React.FC<PublicationsManagerProps> = ({ onPubl
                   required
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  placeholder="Rédigez l'intégralité du texte ou communiqué paroissial ici..."
+                  placeholder="Rédigez l'intégralité du texte ou communiqué de l'Église ici..."
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#0F2C59] outline-none leading-relaxed font-sans"
                 />
               </div>

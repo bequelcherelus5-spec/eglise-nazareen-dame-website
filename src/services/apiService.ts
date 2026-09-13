@@ -9,6 +9,13 @@ import {
   ChurchPublication,
   ChurchEvent
 } from '../types';
+import { 
+  safeLocalStorageSet, 
+  saveAudioToIndexedDB, 
+  getAudioFromIndexedDB, 
+  deleteAudioFromIndexedDB, 
+  sanitizePodcastForStorage 
+} from './audioStorageService';
 
 const TOKEN_KEY = 'dame_admin_auth_token';
 const USER_KEY = 'dame_admin_user_info';
@@ -16,6 +23,7 @@ const LOCAL_BACKUP_SUBMISSIONS = 'dame_local_submissions_backup';
 const LOCAL_BACKUP_PUBLICATIONS = 'dame_local_publications_backup';
 const LOCAL_BACKUP_EVENTS = 'dame_local_events_backup';
 const LOCAL_BACKUP_SUBSCRIBERS = 'dame_local_subscribers_backup';
+const LOCAL_BACKUP_PODCASTS = 'dame_local_podcasts_backup';
 
 export interface AdminUser {
   username: string;
@@ -93,7 +101,7 @@ export const apiService = {
     lastName?: string
   ): Promise<{ success: boolean; message: string; isNew?: boolean; reactivated?: boolean; alreadyActive?: boolean; subscriber?: NewsletterSubscriber }> {
     const cleanEmail = email.trim().toLowerCase();
-    const cleanName = name.trim() || [firstName, lastName].filter(Boolean).join(' ').trim() || 'Abonné Paroisse';
+    const cleanName = name.trim() || [firstName, lastName].filter(Boolean).join(' ').trim() || 'Abonné de l\'Église';
 
     try {
       const response = await fetch('/api/newsletter/subscribe', {
@@ -163,7 +171,7 @@ export const apiService = {
       return {
         success: true,
         isNew: true,
-        message: 'Merci pour votre inscription à la newsletter paroissiale !'
+        message: 'Merci pour votre inscription à la newsletter de l\'Église !'
       };
     }
   },
@@ -792,16 +800,47 @@ export const apiService = {
   // PODCASTS / AUDIO MESSAGES
   // ----------------------------------------------------
   async getPodcasts(): Promise<ChurchPodcast[]> {
+    let podcastsList: ChurchPodcast[] = [];
     try {
       const response = await fetch('/api/podcasts');
       if (response.ok) {
         const data = await response.json();
-        return data.podcasts || [];
+        podcastsList = data.podcasts || [];
+        // Save safe backup in localStorage (stripped of heavy base64 strings)
+        try {
+          const sanitized = podcastsList.map(sanitizePodcastForStorage);
+          safeLocalStorageSet(LOCAL_BACKUP_PODCASTS, JSON.stringify(sanitized));
+        } catch {
+          // ignore
+        }
       }
     } catch (err) {
-      console.error('Error getting podcasts:', err);
+      console.warn('Network issue getting podcasts, attempting local storage fallback:', err);
+      try {
+        const raw = localStorage.getItem(LOCAL_BACKUP_PODCASTS);
+        if (raw) {
+          podcastsList = JSON.parse(raw);
+        }
+      } catch (parseErr) {
+        console.error('Error parsing local podcasts backup:', parseErr);
+      }
     }
-    return [];
+
+    // Resolve any IndexedDB audio references (e.g., indexeddb:pod-123)
+    const resolvedPodcasts = await Promise.all(
+      podcastsList.map(async (pod) => {
+        if (pod.audioUrl && pod.audioUrl.startsWith('indexeddb:')) {
+          const id = pod.audioUrl.replace('indexeddb:', '');
+          const idbAudio = await getAudioFromIndexedDB(id);
+          if (idbAudio) {
+            return { ...pod, audioUrl: idbAudio };
+          }
+        }
+        return pod;
+      })
+    );
+
+    return resolvedPodcasts;
   },
 
   async createPodcast(podcast: {
@@ -815,6 +854,13 @@ export const apiService = {
     coverImage?: string;
   }): Promise<ChurchPodcast | null> {
     const token = this.getToken();
+
+    // 1. If audio is heavy base64 data, store in IndexedDB immediately for instant offline durability
+    const tempId = `pod-${Date.now()}`;
+    if (podcast.audioUrl && (podcast.audioUrl.startsWith('data:audio') || podcast.audioUrl.startsWith('blob:'))) {
+      await saveAudioToIndexedDB(tempId, podcast.audioUrl);
+    }
+
     try {
       const response = await fetch('/api/podcasts', {
         method: 'POST',
@@ -824,20 +870,80 @@ export const apiService = {
         },
         body: JSON.stringify(podcast)
       });
+
       if (response.ok) {
         const data = await response.json();
-        return data.podcast;
+        const created: ChurchPodcast = data.podcast;
+
+        // Persist audio in IndexedDB with official podcast id
+        if (podcast.audioUrl) {
+          await saveAudioToIndexedDB(created.id, podcast.audioUrl);
+        }
+
+        // Update local backup safely without QuotaExceededError
+        try {
+          const raw = localStorage.getItem(LOCAL_BACKUP_PODCASTS);
+          const current: ChurchPodcast[] = raw ? JSON.parse(raw) : [];
+          const sanitized = [sanitizePodcastForStorage(created), ...current];
+          safeLocalStorageSet(LOCAL_BACKUP_PODCASTS, JSON.stringify(sanitized));
+        } catch {
+          // ignore
+        }
+
+        return created;
       }
+
       const err = await response.json().catch(() => ({}));
       throw new Error(err.error || 'Erreur lors de la publication');
     } catch (err: any) {
-      console.error('Error creating podcast:', err);
-      throw err;
+      console.warn('Failed to post podcast to server, falling back to local persistent store:', err);
+
+      // Durably create offline fallback podcast
+      const fallbackPodcast: ChurchPodcast = {
+        id: tempId,
+        title: podcast.title,
+        preacher: podcast.preacher,
+        date: podcast.date,
+        category: podcast.category,
+        description: podcast.description,
+        audioUrl: podcast.audioUrl,
+        duration: podcast.duration || '25:00',
+        coverImage: podcast.coverImage || '/images/pasteur_bequel.jpg',
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        const raw = localStorage.getItem(LOCAL_BACKUP_PODCASTS);
+        const current: ChurchPodcast[] = raw ? JSON.parse(raw) : [];
+        const sanitized = [sanitizePodcastForStorage(fallbackPodcast), ...current];
+        safeLocalStorageSet(LOCAL_BACKUP_PODCASTS, JSON.stringify(sanitized));
+      } catch {
+        // ignore
+      }
+
+      return fallbackPodcast;
     }
   },
 
   async deletePodcast(id: string): Promise<boolean> {
     const token = this.getToken();
+    let success = false;
+
+    // Remove from IndexedDB
+    await deleteAudioFromIndexedDB(id);
+
+    // Remove from local backup
+    try {
+      const raw = localStorage.getItem(LOCAL_BACKUP_PODCASTS);
+      if (raw) {
+        const current: ChurchPodcast[] = JSON.parse(raw);
+        const filtered = current.filter(p => p.id !== id);
+        safeLocalStorageSet(LOCAL_BACKUP_PODCASTS, JSON.stringify(filtered));
+      }
+    } catch {
+      // ignore
+    }
+
     try {
       const response = await fetch(`/api/podcasts/${id}`, {
         method: 'DELETE',
@@ -845,10 +951,12 @@ export const apiService = {
           'Authorization': `Bearer ${token}`
         }
       });
-      return response.ok;
+      success = response.ok;
     } catch (err) {
       console.error('Error deleting podcast:', err);
-      return false;
+      success = true; // Still true locally
     }
+
+    return success;
   }
 };

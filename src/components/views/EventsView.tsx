@@ -162,43 +162,43 @@ export const EventsView: React.FC<EventsViewProps> = ({
             </div>
           </div>
 
-          {/* Dimanche EDD */}
+          {/* Dimanche Prière */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-[#D4AF37] transition-colors">
+            <div>
+              <div className="flex items-center gap-2 text-[#0F2C59] mb-3">
+                <Flame className="h-5 w-5 text-[#D4AF37]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Dimanche Soir</span>
+              </div>
+              <h3 className="text-lg font-bold font-display text-slate-900">
+                Réunion de Prière
+              </h3>
+              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                Prière d'intercession, supplication, louange et communion fraternelle pour clore le jour du Seigneur dans Sa présence.
+              </p>
+            </div>
+            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="font-bold text-[#0F2C59]">17h00 - 19h00</span>
+              <span className="text-slate-500">Sanctuaire Principal</span>
+            </div>
+          </div>
+
+          {/* Mardi Prière & Étude */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-[#D4AF37] transition-colors">
             <div>
               <div className="flex items-center gap-2 text-[#0F2C59] mb-3">
                 <BookOpen className="h-5 w-5 text-[#0F2C59]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Dimanche Après-Midi</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Mardi Soir</span>
               </div>
               <h3 className="text-lg font-bold font-display text-slate-900">
-                École du Dimanche (EDD)
+                Réunion de Prière & Étude Biblique
               </h3>
               <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-                Enseignement biblique systématique par tranches d'âges : enfants, jeunes JNI et adultes, suivi du rapport des classes.
+                Intercession fervente et étude méthodique des Saintes Écritures pour l'édification et la maturité spirituelle de chaque disciple.
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="font-bold text-[#0F2C59]">16h00 - 17h30</span>
-              <span className="text-slate-500">Classes Nazareth</span>
-            </div>
-          </div>
-
-          {/* Mercredi Soir */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-[#D4AF37] transition-colors">
-            <div>
-              <div className="flex items-center gap-2 text-[#0F2C59] mb-3">
-                <Sparkles className="h-5 w-5 text-[#0F2C59]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Mercredi Soir</span>
-              </div>
-              <h3 className="text-lg font-bold font-display text-slate-900">
-                Étude Biblique Doctrinale
-              </h3>
-              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-                Approfondissement des Écritures et étude des 16 Articles de Foi de l'Église du Nazaréen animée par le corps pastoral.
-              </p>
-            </div>
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="font-bold text-[#0F2C59]">18h00 - 19h30</span>
-              <span className="text-slate-500">Sanctuaire</span>
+              <span className="font-bold text-[#0F2C59]">17h00 - 19h00</span>
+              <span className="text-slate-500">Sanctuaire Principal</span>
             </div>
           </div>
 
@@ -390,7 +390,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                       Inscription enregistrée !
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      Votre participation a été transmise au secrétariat paroissial. Nous avons hâte de vous compter parmi nous.
+                      Votre participation a été transmise au secrétariat de l'Église. Nous avons hâte de vous compter parmi nous.
                     </p>
                   </div>
                   <button

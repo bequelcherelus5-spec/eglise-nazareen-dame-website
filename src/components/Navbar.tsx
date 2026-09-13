@@ -343,7 +343,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   Navigation Générale • Église du Nazaréen de Damé
                 </h3>
                 <p className="text-[11px] text-slate-500">
-                  {allNavItemsCount} pages et services paroissiaux disponibles
+                  {allNavItemsCount} pages et services de l'Église disponibles
                 </p>
               </div>
             </div>

@@ -86,7 +86,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
         const fallbackUser: AdminUser = {
           username: username.trim(),
           role: isBequel ? 'Direction Pastorale & Secrétariat' : 'Secrétaire Général',
-          displayName: isBequel ? 'Pasteur Bequel CHERELUS' : 'Secrétariat Paroissial — Damé',
+          displayName: isBequel ? 'Pasteur Bequel CHERELUS' : 'Secrétariat de l\'Église — Damé',
         };
         apiService.setSession('dame-session-' + Date.now(), fallbackUser, rememberMe);
         onLoginSuccess(fallbackUser);
@@ -103,7 +103,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
         const fallbackUser: AdminUser = {
           username: username.trim(),
           role: isBequel ? 'Direction Pastorale & Secrétariat' : 'Secrétaire Général',
-          displayName: isBequel ? 'Pasteur Bequel CHERELUS' : 'Secrétariat Paroissial — Damé',
+          displayName: isBequel ? 'Pasteur Bequel CHERELUS' : 'Secrétariat de l\'Église — Damé',
         };
         apiService.setSession('dame-session-' + Date.now(), fallbackUser, rememberMe);
         onLoginSuccess(fallbackUser);
@@ -327,7 +327,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
               </div>
 
               <p className="text-xs text-slate-300 leading-relaxed">
-                Pour réinitialiser le code d'accès administrateur, veuillez saisir l'adresse e-mail administrative officielle de la paroisse (<span className="text-[#D4AF37] font-semibold">{ADMIN_RECOVERY_EMAIL}</span>).
+                Pour réinitialiser le code d'accès administrateur, veuillez saisir l'adresse e-mail administrative officielle de l'Église (<span className="text-[#D4AF37] font-semibold">{ADMIN_RECOVERY_EMAIL}</span>).
               </p>
 
               {recoveryError && (

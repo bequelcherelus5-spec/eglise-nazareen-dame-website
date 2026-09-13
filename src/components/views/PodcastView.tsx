@@ -17,10 +17,12 @@ import {
   Sparkles,
   BookmarkCheck,
   Headphones,
-  Check
+  Check,
+  AlertCircle
 } from 'lucide-react';
 import { ChurchPodcast, PodcastCategory } from '../../types';
 import { apiService } from '../../services/apiService';
+import { getAudioFromIndexedDB } from '../../services/audioStorageService';
 
 interface PodcastViewProps {
   onNavigate?: (tab: string) => void;
@@ -41,6 +43,7 @@ export const PodcastView: React.FC<PodcastViewProps> = ({ onNavigate }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -73,23 +76,43 @@ export const PodcastView: React.FC<PodcastViewProps> = ({ onNavigate }) => {
   };
 
   // Handle Play/Pause
-  const handleTogglePlay = (podcast: ChurchPodcast) => {
-    if (currentPodcast?.id === podcast.id) {
+  const handleTogglePlay = async (podcast: ChurchPodcast) => {
+    setPlaybackError(null);
+
+    // Résolution audio depuis IndexedDB si nécessaire (pour les fichiers lourds protégés)
+    let resolvedPodcast = podcast;
+    if (podcast.audioUrl && podcast.audioUrl.startsWith('indexeddb:')) {
+      const id = podcast.audioUrl.replace('indexeddb:', '');
+      const localAudio = await getAudioFromIndexedDB(id);
+      if (localAudio) {
+        resolvedPodcast = { ...podcast, audioUrl: localAudio };
+      }
+    }
+
+    if (currentPodcast?.id === resolvedPodcast.id) {
       if (isPlaying) {
         audioRef.current?.pause();
         setIsPlaying(false);
       } else {
-        audioRef.current?.play();
-        setIsPlaying(true);
+        audioRef.current?.play().then(() => {
+          setIsPlaying(true);
+        }).catch(() => {
+          setPlaybackError("Impossible de démarrer la lecture du message audio.");
+          setIsPlaying(false);
+        });
       }
     } else {
-      setCurrentPodcast(podcast);
+      setCurrentPodcast(resolvedPodcast);
       setIsPlaying(true);
       // Wait for state & ref to update
       setTimeout(() => {
         if (audioRef.current) {
           audioRef.current.currentTime = 0;
-          audioRef.current.play().catch(e => console.log('Audio autoplay prevented:', e));
+          audioRef.current.play().catch(e => {
+            console.log('Audio autoplay prevented:', e);
+            setPlaybackError("Cliquez sur le bouton de lecture pour lancer l'écoute.");
+            setIsPlaying(false);
+          });
         }
       }, 50);
     }
@@ -191,6 +214,10 @@ export const PodcastView: React.FC<PodcastViewProps> = ({ onNavigate }) => {
           src={currentPodcast.audioUrl}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
+          onError={() => {
+            setPlaybackError("Le fichier audio n'a pas pu être chargé. Veuillez vérifier votre connexion ou choisir un autre message.");
+            setIsPlaying(false);
+          }}
           onEnded={() => setIsPlaying(false)}
         />
       )}
@@ -230,6 +257,21 @@ export const PodcastView: React.FC<PodcastViewProps> = ({ onNavigate }) => {
         {/* Sticky / Primary Active Player Deck */}
         {currentPodcast && (
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200/80 p-5 sm:p-7 mb-10 transition-all">
+            {playbackError && (
+              <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-3 text-amber-800 text-xs">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                  <span>{playbackError}</span>
+                </div>
+                <button
+                  onClick={() => setPlaybackError(null)}
+                  className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 underline cursor-pointer"
+                >
+                  Fermer
+                </button>
+              </div>
+            )}
+
             <div className="flex flex-col lg:flex-row items-center gap-6">
               
               {/* Cover Art Thumbnail */}

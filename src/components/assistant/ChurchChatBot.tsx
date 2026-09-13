@@ -165,7 +165,7 @@ export const ChurchChatBot: React.FC = () => {
               <div>
                 <div className="flex items-center gap-1.5">
                   <h3 className="font-bold text-sm font-display text-white">
-                    Assistant Paroissial
+                    Assistant de l'Église
                   </h3>
                   <span className="inline-block h-2 w-2 rounded-full bg-emerald-400"></span>
                 </div>

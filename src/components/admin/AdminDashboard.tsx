@@ -59,6 +59,11 @@ import {
 } from 'lucide-react';
 import { PublicationsManager } from './PublicationsManager';
 import { EventsManager } from './EventsManager';
+import { 
+  validateAudioFile, 
+  compressAudioFile, 
+  MAX_AUDIO_SIZE_MB 
+} from '../../services/audioStorageService';
 
 interface AdminDashboardProps {
   currentUser: AdminUser;
@@ -128,6 +133,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Audio preview element ref
   const [audioPreviewEl, setAudioPreviewEl] = useState<HTMLAudioElement | null>(null);
+  const [audioFileError, setAudioFileError] = useState<string | null>(null);
+  const [isCompressingAudio, setIsCompressingAudio] = useState<boolean>(false);
+  const [audioCompressionStep, setAudioCompressionStep] = useState<string | null>(null);
+  const [audioCompressionInfo, setAudioCompressionInfo] = useState<string | null>(null);
 
   // Filters for submissions table
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
@@ -319,35 +328,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // Audio File Selection & Processing
-  const handleAudioFileSelect = (file: File) => {
+  // Audio File Selection & Processing with strict size validation and compression
+  const handleAudioFileSelect = async (file: File) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      
-      // Probe duration
-      const tempAudio = new Audio(dataUrl);
-      tempAudio.onloadedmetadata = () => {
-        const sec = Math.floor(tempAudio.duration);
-        const mins = Math.floor(sec / 60);
-        const remSecs = sec % 60;
-        const formattedDuration = `${mins.toString().padStart(2, '0')}:${remSecs.toString().padStart(2, '0')}`;
-        setPodcastForm(prev => ({
-          ...prev,
-          audioUrl: dataUrl,
-          duration: formattedDuration,
-          fileName: file.name
-        }));
-      };
-      
+    setAudioFileError(null);
+    setAudioCompressionInfo(null);
+
+    // 1. Validation explicite de la taille et du format (évite QuotaExceededError)
+    const check = validateAudioFile(file);
+    if (!check.valid) {
+      setAudioFileError(check.error || 'Fichier audio non valide.');
       setPodcastForm(prev => ({
         ...prev,
-        audioUrl: dataUrl,
+        audioUrl: '',
+        fileName: '',
+        duration: '25:00'
+      }));
+      return;
+    }
+
+    // 2. Traitement et compression audio pour optimiser le stockage
+    setIsCompressingAudio(true);
+    setAudioCompressionStep('Analyse et optimisation du fichier audio...');
+
+    try {
+      const result = await compressAudioFile(file, (step) => {
+        setAudioCompressionStep(step);
+      });
+
+      setPodcastForm(prev => ({
+        ...prev,
+        audioUrl: result.audioUrl,
+        duration: result.duration,
         fileName: file.name
       }));
-    };
-    reader.readAsDataURL(file);
+
+      if (result.compressed) {
+        setAudioCompressionInfo(
+          `Compression réussie : fichier réduit de ${result.originalSizeMb.toFixed(1)} Mo à ${result.finalSizeMb.toFixed(1)} Mo (${result.duration}).`
+        );
+      } else {
+        setAudioCompressionInfo(
+          `Fichier prêt : ${result.finalSizeMb.toFixed(1)} Mo (${result.duration}).`
+        );
+      }
+    } catch (err: any) {
+      console.error('Erreur lors du traitement audio:', err);
+      setAudioFileError(
+        err.message || 'Impossible de traiter ce fichier audio. Veuillez vérifier son format.'
+      );
+    } finally {
+      setIsCompressingAudio(false);
+      setAudioCompressionStep(null);
+    }
   };
 
   // Submit new Podcast
@@ -799,7 +832,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {refreshing && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
             </div>
             <p className="text-xs text-slate-500">
-              Paroisse de Damé • « Sainteté à l’Éternel » • Commune de Môle-Saint-Nicolas
+              Église de Damé • « Sainteté à l’Éternel » • Commune de Môle-Saint-Nicolas
             </p>
           </div>
 
@@ -1020,7 +1053,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   {item.phone}
                                 </span>
                               )}
-                              {item.email && item.email !== 'non-fourni@paroisse.org' && (
+                              {item.email && !item.email.startsWith('non-fourni@') && (
                                 <span className="text-slate-500 truncate max-w-[140px]">{item.email}</span>
                               )}
                             </div>
@@ -1109,7 +1142,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                   <h3 className="text-base font-bold font-display text-slate-900">
-                    Diffusion & Abonnés Paroissiaux
+                    Diffusion & Abonnés de l'Église
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Gérez la liste des membres abonnés à la lettre pastorale et préparez les futures campagnes d'annonces.
@@ -1142,7 +1175,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-[#D4AF37]" />
                       <h4 className="text-sm font-bold text-slate-900">
-                        Nouveau Message de Diffusion Paroissiale
+                        Nouveau Message de Diffusion de l'Église
                       </h4>
                     </div>
                     <button
@@ -1209,7 +1242,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         required
                         value={campaignForm.content}
                         onChange={(e) => setCampaignForm({ ...campaignForm, content: e.target.value })}
-                        placeholder="Rédigez ici le texte du communiqué paroissial..."
+                        placeholder="Rédigez ici le texte du communiqué de l'Église..."
                         className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#0F2C59] outline-none"
                       />
                     </div>
@@ -1529,10 +1562,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <span className="font-bold text-slate-900 block text-xs">
                               Fichier Audio (MP3 ou WAV) *
                             </span>
-                            <span className="text-[11px] text-slate-500">
+                            <span className="text-[11px] text-slate-500 block">
                               {podcastForm.fileName 
                                 ? `Sélectionné : ${podcastForm.fileName} (${podcastForm.duration})` 
                                 : 'Sélectionnez un fichier audio sur votre appareil (MP3 / WAV)'}
+                            </span>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">
+                              Taille maximale autorisée : {MAX_AUDIO_SIZE_MB} Mo • Protection anti-dépassement de quota
                             </span>
                           </div>
                         </div>
@@ -1558,14 +1594,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <button
                               type="button"
                               onClick={() => {
+                                setAudioFileError(null);
                                 // Use seed synthesized church audio
                                 const sample = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
                                 setPodcastForm(prev => ({
                                   ...prev,
                                   audioUrl: sample,
-                                  fileName: 'audio_cantique_paroissial.wav',
+                                  fileName: 'audio_cantique_eglise.wav',
                                   duration: '22:30'
                                 }));
+                                setAudioCompressionInfo('Extrait audio de test chargé (format compact).');
                               }}
                               className="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-medium"
                               title="Utiliser un extrait audio de test"
@@ -1575,6 +1613,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           )}
                         </div>
                       </div>
+
+                      {/* Explicit Error Message if file exceeds limit or format is invalid */}
+                      {audioFileError && (
+                        <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2.5 text-rose-700 text-xs leading-relaxed animate-fadeIn">
+                          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-600" />
+                          <div>
+                            <span className="font-bold block text-rose-800">Dépassement de la limite de taille :</span>
+                            <span>{audioFileError}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Compression progress indicator */}
+                      {isCompressingAudio && (
+                        <div className="mt-3 p-3 rounded-xl bg-blue-50 border border-blue-200 flex items-center gap-3 text-blue-800 text-xs">
+                          <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-blue-600" />
+                          <div>
+                            <span className="font-bold block">Optimisation et compression audio en cours...</span>
+                            <span className="text-[11px] text-blue-600">
+                              {audioCompressionStep || 'Réduction du débit et protection contre les erreurs de quota...'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Success / optimization info */}
+                      {audioCompressionInfo && !isCompressingAudio && !audioFileError && (
+                        <div className="mt-3 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-emerald-800 text-xs">
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                          <span>{audioCompressionInfo}</span>
+                        </div>
+                      )}
 
                       {/* Mini Preview Player if audio is loaded */}
                       {podcastForm.audioUrl && (
