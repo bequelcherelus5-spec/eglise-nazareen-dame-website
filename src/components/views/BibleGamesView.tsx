@@ -76,7 +76,15 @@ export const BibleGamesView: React.FC = () => {
   
   // Players configuration (1 to 10 players)
   const [playerCount, setPlayerCount] = useState<number>(1);
-  const [playerNames, setPlayerNames] = useState<string[]>(['Joueur 1', 'Joueur 2']);
+  const [playerNames, setPlayerNames] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('dame_bible_player_name');
+      if (saved && saved.trim()) return [saved.trim(), 'Joueur 2'];
+    } catch {
+      // Ignore
+    }
+    return ['Joueur 1', 'Joueur 2'];
+  });
   const [currentPlayerIdx, setCurrentPlayerIdx] = useState<number>(0);
   const [playersScores, setPlayersScores] = useState<PlayerScore[]>([]);
 
@@ -135,6 +143,13 @@ export const BibleGamesView: React.FC = () => {
     const updated = [...playerNames];
     updated[idx] = name;
     setPlayerNames(updated);
+    if (idx === 0 && name.trim()) {
+      try {
+        localStorage.setItem('dame_bible_player_name', name.trim());
+      } catch {
+        // Ignore
+      }
+    }
   };
 
   // Start the game
@@ -695,25 +710,66 @@ export const BibleGamesView: React.FC = () => {
                   ))}
                 </div>
 
-                {/* Player names inputs */}
-                {playerCount > 1 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 mt-3 animate-fade-in">
-                    {Array.from({ length: playerCount }).map((_, pIdx) => (
+                {/* Player name input for Solo mode */}
+                {playerCount === 1 && (
+                  <div className={`mt-3 p-3.5 rounded-xl border text-left space-y-2 transition-colors ${
+                    isDark ? 'bg-[#101E31] border-slate-700' : isSepia ? 'bg-[#FAF6EE] border-[#DFD3C3]' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <label htmlFor="bible-solo-player-name" className={`block text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-200' : isSepia ? 'text-[#4A3926]' : 'text-slate-700'}`}>
+                      Votre Nom ou Prénom pour compter vos points :
+                    </label>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                       <input
-                        key={pIdx}
+                        id="bible-solo-player-name"
                         type="text"
-                        placeholder={`Joueur ${pIdx + 1}`}
-                        value={playerNames[pIdx] || ''}
-                        onChange={(e) => handlePlayerNameChange(pIdx, e.target.value)}
-                        className={`rounded-lg border px-3 py-1.5 text-xs focus:outline-none ${
+                        placeholder="Entrez votre nom (Ex: Samuel, Ruth, Sœur Marie...)"
+                        value={playerNames[0] || ''}
+                        onChange={(e) => handlePlayerNameChange(0, e.target.value)}
+                        className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold focus:outline-none ${
                           isDark 
-                            ? 'bg-[#101E31] border-slate-700 text-slate-100 focus:border-[#D4AF37]' 
+                            ? 'bg-[#16263D] border-slate-600 text-slate-100 focus:border-[#D4AF37]' 
                             : isSepia
-                            ? 'bg-[#FAF6EE] border-[#DFD3C3] text-[#2C2416] focus:border-[#8C6D37]'
-                            : 'border-slate-300 bg-white text-slate-900 focus:border-[#0F2C59]'
+                            ? 'bg-white border-[#DFD3C3] text-[#2C2416] focus:border-[#8C6D37]'
+                            : 'bg-white border-slate-300 text-slate-900 focus:border-[#0F2C59]'
                         }`}
                       />
-                    ))}
+                      <div className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#D4AF37]/20 border border-[#D4AF37]/50 text-[#D4AF37] text-xs font-bold shrink-0">
+                        <Trophy className="h-3.5 w-3.5" />
+                        <span>Compte des points</span>
+                      </div>
+                    </div>
+                    <p className={`text-[11px] ${isDark ? 'text-slate-400' : isSepia ? 'text-[#7D6B57]' : 'text-slate-500'}`}>
+                      Indiquez votre nom : si vous accumulez beaucoup de points, vous figurerez en tête du Tableau des Champions !
+                    </p>
+                  </div>
+                )}
+
+                {/* Player names inputs for Multiplayer */}
+                {playerCount > 1 && (
+                  <div className={`mt-3 p-3.5 rounded-xl border text-left space-y-2 transition-colors ${
+                    isDark ? 'bg-[#101E31] border-slate-700' : isSepia ? 'bg-[#FAF6EE] border-[#DFD3C3]' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <label className={`block text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-200' : isSepia ? 'text-[#4A3926]' : 'text-slate-700'}`}>
+                      Noms des joueurs pour compter les points :
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                      {Array.from({ length: playerCount }).map((_, pIdx) => (
+                        <input
+                          key={pIdx}
+                          type="text"
+                          placeholder={`Nom Joueur ${pIdx + 1}`}
+                          value={playerNames[pIdx] || ''}
+                          onChange={(e) => handlePlayerNameChange(pIdx, e.target.value)}
+                          className={`rounded-lg border px-3 py-1.5 text-xs font-semibold focus:outline-none ${
+                            isDark 
+                              ? 'bg-[#16263D] border-slate-700 text-slate-100 focus:border-[#D4AF37]' 
+                              : isSepia
+                              ? 'bg-[#FAF6EE] border-[#DFD3C3] text-[#2C2416] focus:border-[#8C6D37]'
+                              : 'border-slate-300 bg-white text-slate-900 focus:border-[#0F2C59]'
+                          }`}
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1054,7 +1110,7 @@ export const BibleGamesView: React.FC = () => {
                 isSepia={isSepia}
                 onPlayAgain={startGame}
                 recentScore={{
-                  playerName: [...playersScores].sort((a, b) => b.score - a.score)[0]?.name || 'Joueur 1',
+                  playerName: [...playersScores].sort((a, b) => b.score - a.score)[0]?.name || playerNames[0] || 'Joueur 1',
                   score: [...playersScores].sort((a, b) => b.score - a.score)[0]?.score || 0,
                   gameType,
                   audience,

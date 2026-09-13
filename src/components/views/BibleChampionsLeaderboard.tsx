@@ -17,9 +17,13 @@ import {
   ShieldCheck, 
   Heart,
   Send,
-  Gamepad2
+  Gamepad2,
+  CheckCircle2,
+  UserCheck
 } from 'lucide-react';
 import { GameType, GameAudience } from '../../types';
+import { db } from '../../services/firebase';
+import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
 export interface ChampionEntry {
   id: string;
@@ -36,6 +40,7 @@ export interface ChampionEntry {
 }
 
 const STORAGE_CHAMPIONS_KEY = 'dame_bible_champions_v2';
+const STORAGE_PLAYER_NAME_KEY = 'dame_bible_player_name';
 
 const DEFAULT_CHURCH_CHAMPIONS: ChampionEntry[] = [
   {
@@ -175,6 +180,24 @@ export const BibleChampionsLeaderboard: React.FC<BibleChampionsLeaderboardProps>
   const [hasSavedRecentScore, setHasSavedRecentScore] = useState(false);
   const [submissionSuccessMsg, setSubmissionSuccessMsg] = useState('');
 
+  // Form states for entering player's name & points
+  const [formName, setFormName] = useState<string>(() => {
+    if (recentScore?.playerName && recentScore.playerName !== 'Joueur 1') {
+      return recentScore.playerName;
+    }
+    try {
+      const saved = localStorage.getItem(STORAGE_PLAYER_NAME_KEY);
+      if (saved) return saved;
+    } catch {
+      // Ignore
+    }
+    return '';
+  });
+  const [formScore, setFormScore] = useState<number>(() => recentScore?.score || 1000);
+  const [formGameType, setFormGameType] = useState<GameType>(() => recentScore?.gameType || 'quiz');
+  const [formAudience, setFormAudience] = useState<GameAudience>(() => recentScore?.audience || 'jeunesse');
+  const [formError, setFormError] = useState<string>('');
+
   // Social Share states
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -187,9 +210,64 @@ export const BibleChampionsLeaderboard: React.FC<BibleChampionsLeaderboardProps>
     }
   };
 
-  // Register recent score into leaderboard
-  const handleRegisterRecentScore = () => {
-    if (!recentScore || hasSavedRecentScore) return;
+  // Sync with incoming recentScore
+  useEffect(() => {
+    if (recentScore && recentScore.score > 0) {
+      setFormScore(recentScore.score);
+      if (recentScore.playerName && recentScore.playerName !== 'Joueur 1') {
+        setFormName(recentScore.playerName);
+      }
+      if (recentScore.gameType) setFormGameType(recentScore.gameType);
+      if (recentScore.audience) setFormAudience(recentScore.audience);
+    }
+  }, [recentScore]);
+
+  // Load online champions from Firestore if available
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchOnlineChampions() {
+      try {
+        const q = query(collection(db, 'bible_champions'), orderBy('score', 'desc'), limit(25));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty && isMounted) {
+          const remoteList: ChampionEntry[] = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...(doc.data() as any)
+          }));
+          setChampions(prev => {
+            const combined = [...remoteList];
+            prev.forEach(p => {
+              if (!combined.some(c => c.name === p.name && c.score === p.score)) {
+                combined.push(p);
+              }
+            });
+            const sorted = combined.sort((a, b) => b.score - a.score);
+            saveChampionsToStorage(sorted);
+            return sorted;
+          });
+        }
+      } catch {
+        // Safe offline fallback
+      }
+    }
+    fetchOnlineChampions();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Register score with custom name into leaderboard
+  const handleCustomRegister = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanName = formName.trim();
+    if (!cleanName) {
+      setFormError('Veuillez renseigner votre nom ou prénom pour inscrire vos points.');
+      return;
+    }
+    const cleanScore = Number(formScore);
+    if (isNaN(cleanScore) || cleanScore <= 0) {
+      setFormError('Veuillez entrer un total de points valide supérieur à 0.');
+      return;
+    }
+    setFormError('');
 
     const gameLabels: Record<string, string> = {
       quiz: 'Quiz Biblique',
@@ -206,34 +284,61 @@ export const BibleChampionsLeaderboard: React.FC<BibleChampionsLeaderboardProps>
       adultes: 'Adultes'
     };
 
-    const accuracy = recentScore.totalQuestions > 0 
-      ? Math.round((recentScore.correctAnswers / recentScore.totalQuestions) * 100) 
-      : 90;
-
     let badge = 'Disciple de Damé';
-    if (recentScore.score >= 1200) badge = 'Érudit de la Parole';
-    else if (recentScore.score >= 800) badge = 'Flambeau Zélé';
-    else if (recentScore.score >= 500) badge = 'Ami de la Bible';
+    if (cleanScore >= 1400) badge = 'Maître des Écritures';
+    else if (cleanScore >= 1200) badge = 'Érudit de la Parole';
+    else if (cleanScore >= 800) badge = 'Flambeau Zélé';
+    else if (cleanScore >= 500) badge = 'Ami de la Bible';
 
     const newEntry: ChampionEntry = {
       id: 'champ-' + Date.now(),
-      name: recentScore.playerName || 'Membre de Damé',
-      score: recentScore.score,
-      accuracy,
-      gameType: recentScore.gameType,
-      gameLabel: gameLabels[recentScore.gameType] || 'Jeu Biblique',
-      audience: recentScore.audience,
-      audienceLabel: audienceLabels[recentScore.audience] || 'Tous',
+      name: cleanName,
+      score: cleanScore,
+      accuracy: Math.min(100, Math.max(75, Math.round((cleanScore / 1500) * 100))),
+      gameType: formGameType,
+      gameLabel: gameLabels[formGameType] || 'Jeu Biblique',
+      audience: formAudience,
+      audienceLabel: audienceLabels[formAudience] || 'Tous',
       titleBadge: badge,
       date: new Date().toLocaleDateString('fr-FR'),
       isUserSubmission: true
     };
 
+    // Remember name in localStorage
+    try {
+      localStorage.setItem(STORAGE_PLAYER_NAME_KEY, cleanName);
+    } catch {
+      // Ignore
+    }
+
+    // Always sort descending by score so highest scores lead
     const updated = [...champions, newEntry].sort((a, b) => b.score - a.score);
     setChampions(updated);
     saveChampionsToStorage(updated);
     setHasSavedRecentScore(true);
-    setSubmissionSuccessMsg(`Gloire à Dieu ! Votre score de ${recentScore.score} pts a été inscrit au Tableau des Champions.`);
+
+    const rankIndex = updated.findIndex(c => c.id === newEntry.id) + 1;
+    setSubmissionSuccessMsg(
+      `Gloire à Dieu ! ${cleanName}, votre score de ${cleanScore} points est inscrit avec succès au rang #${rankIndex} parmi les champions !`
+    );
+
+    // Save to Firestore non-blockingly
+    try {
+      addDoc(collection(db, 'bible_champions'), {
+        name: cleanName,
+        score: cleanScore,
+        accuracy: newEntry.accuracy,
+        gameType: formGameType,
+        gameLabel: newEntry.gameLabel,
+        audience: formAudience,
+        audienceLabel: newEntry.audienceLabel,
+        titleBadge: badge,
+        date: newEntry.date,
+        createdAt: new Date().toISOString()
+      }).catch(() => {});
+    } catch {
+      // Ignore
+    }
   };
 
   // Filter champions
@@ -302,19 +407,172 @@ export const BibleChampionsLeaderboard: React.FC<BibleChampionsLeaderboardProps>
             </p>
           </div>
 
-          {/* Prompt to register recent score if available */}
+          {/* Bouton d'accès direct / indicateur */}
           {recentScore && !hasSavedRecentScore && recentScore.score > 0 && (
             <div className="shrink-0">
-              <button
-                type="button"
-                onClick={handleRegisterRecentScore}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#c49e29] text-slate-950 font-bold text-xs shadow-lg transition-transform hover:scale-105 cursor-pointer"
-              >
+              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#D4AF37]/20 border border-[#D4AF37] text-[#D4AF37] font-bold text-xs">
                 <Sparkles className="h-4 w-4" />
-                <span>Inscrire mon score ({recentScore.score} pts)</span>
-              </button>
+                <span>Partie terminée : {recentScore.score} pts</span>
+              </span>
             </div>
           )}
+        </div>
+
+        {/* --- ESPACE POUR METTRE VOTRE NOM ET ENREGISTRER VOS POINTS --- */}
+        <div className={`mt-6 rounded-2xl border p-5 sm:p-6 transition-all ${
+          isDark 
+            ? 'bg-gradient-to-br from-[#182B46] to-[#0F1E33] border-[#D4AF37]/40 text-slate-100' 
+            : isSepia 
+            ? 'bg-gradient-to-br from-[#FAF3E8] to-[#F3E7D5] border-[#8C6D37]/40 text-[#2C2416]' 
+            : 'bg-gradient-to-br from-amber-50/70 via-white to-amber-50/40 border-[#D4AF37]/50 text-slate-800'
+        } shadow-sm`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-slate-700/20 dark:border-slate-700/60">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center font-bold">
+                <Trophy className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className={`text-sm sm:text-base font-bold font-display ${isDark ? 'text-white' : isSepia ? 'text-[#2C2416]' : 'text-[#0F2C59]'}`}>
+                  Espace Inscription : Mettre votre nom pour compter vos points
+                </h3>
+                <p className={`text-xs ${isDark ? 'text-slate-300' : isSepia ? 'text-[#5C4D3B]' : 'text-slate-600'}`}>
+                  Les participants ayant obtenu le plus de points sont automatiquement classés en tête du tableau !
+                </p>
+              </div>
+            </div>
+            {recentScore && !hasSavedRecentScore && recentScore.score > 0 && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-[#D4AF37] text-slate-950 px-3 py-1 rounded-full animate-pulse self-start sm:self-auto">
+                <Sparkles className="h-3.5 w-3.5" />
+                Score récent détecté : {recentScore.score} pts
+              </span>
+            )}
+          </div>
+
+          <form onSubmit={handleCustomRegister} className="mt-4 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Nom Input */}
+              <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+                <label htmlFor="champion-player-name" className={`block text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-200' : isSepia ? 'text-[#4A3926]' : 'text-slate-700'}`}>
+                  Votre Nom ou Prénom * :
+                </label>
+                <input
+                  id="champion-player-name"
+                  type="text"
+                  placeholder="Ex: Samuel, Ruth, Frère David..."
+                  value={formName}
+                  onChange={(e) => {
+                    setFormName(e.target.value);
+                    if (formError) setFormError('');
+                  }}
+                  className={`w-full rounded-xl border px-3 py-2 text-xs font-semibold focus:outline-none ${
+                    isDark
+                      ? 'bg-[#101E31] border-slate-700 text-white focus:border-[#D4AF37]'
+                      : isSepia
+                      ? 'bg-[#FFFDF9] border-[#DFD3C3] text-[#2C2416] focus:border-[#8C6D37]'
+                      : 'bg-white border-slate-300 text-slate-900 focus:border-[#0F2C59]'
+                  }`}
+                />
+              </div>
+
+              {/* Points Input */}
+              <div className="space-y-1">
+                <label htmlFor="champion-player-score" className={`block text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-200' : isSepia ? 'text-[#4A3926]' : 'text-slate-700'}`}>
+                  Vos Points * :
+                </label>
+                <div className="relative">
+                  <input
+                    id="champion-player-score"
+                    type="number"
+                    min="1"
+                    step="10"
+                    placeholder="Points (ex: 1200)"
+                    value={formScore || ''}
+                    onChange={(e) => {
+                      setFormScore(Number(e.target.value));
+                      if (formError) setFormError('');
+                    }}
+                    className={`w-full rounded-xl border px-3 py-2 text-xs font-bold font-mono focus:outline-none ${
+                      isDark
+                        ? 'bg-[#101E31] border-slate-700 text-[#D4AF37] focus:border-[#D4AF37]'
+                        : isSepia
+                        ? 'bg-[#FFFDF9] border-[#DFD3C3] text-[#8C6D37] focus:border-[#8C6D37]'
+                        : 'bg-white border-slate-300 text-[#0F2C59] focus:border-[#0F2C59]'
+                    }`}
+                  />
+                  <span className="absolute right-3 top-2 text-[10px] font-bold text-slate-400">pts</span>
+                </div>
+              </div>
+
+              {/* Jeu Biblique Select */}
+              <div className="space-y-1">
+                <label htmlFor="champion-game-type" className={`block text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-200' : isSepia ? 'text-[#4A3926]' : 'text-slate-700'}`}>
+                  Jeu Biblique :
+                </label>
+                <select
+                  id="champion-game-type"
+                  value={formGameType}
+                  onChange={(e) => setFormGameType(e.target.value as GameType)}
+                  className={`w-full rounded-xl border px-2.5 py-2 text-xs font-semibold focus:outline-none ${
+                    isDark
+                      ? 'bg-[#101E31] border-slate-700 text-white focus:border-[#D4AF37]'
+                      : isSepia
+                      ? 'bg-[#FFFDF9] border-[#DFD3C3] text-[#2C2416] focus:border-[#8C6D37]'
+                      : 'bg-white border-slate-300 text-slate-900 focus:border-[#0F2C59]'
+                  }`}
+                >
+                  <option value="quiz">Quiz Biblique</option>
+                  <option value="verset">Versets Clés</option>
+                  <option value="qui-suis-je">Qui suis-je ?</option>
+                  <option value="completer">Textes à trous</option>
+                  <option value="vrai-faux">Vrai ou Faux</option>
+                  <option value="memoire">Défi Mémoire</option>
+                </select>
+              </div>
+
+              {/* Catégorie Select */}
+              <div className="space-y-1">
+                <label htmlFor="champion-audience" className={`block text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-200' : isSepia ? 'text-[#4A3926]' : 'text-slate-700'}`}>
+                  Catégorie :
+                </label>
+                <select
+                  id="champion-audience"
+                  value={formAudience}
+                  onChange={(e) => setFormAudience(e.target.value as GameAudience)}
+                  className={`w-full rounded-xl border px-2.5 py-2 text-xs font-semibold focus:outline-none ${
+                    isDark
+                      ? 'bg-[#101E31] border-slate-700 text-white focus:border-[#D4AF37]'
+                      : isSepia
+                      ? 'bg-[#FFFDF9] border-[#DFD3C3] text-[#2C2416] focus:border-[#8C6D37]'
+                      : 'bg-white border-slate-300 text-slate-900 focus:border-[#0F2C59]'
+                  }`}
+                >
+                  <option value="jeunesse">Jeunesse JNI</option>
+                  <option value="adultes">Adultes</option>
+                  <option value="enfants">Enfants (École du Dimanche)</option>
+                </select>
+              </div>
+            </div>
+
+            {formError && (
+              <p className="text-xs text-rose-400 font-semibold flex items-center gap-1">
+                <span>⚠️</span> {formError}
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+              <span className={`text-[11px] ${isDark ? 'text-slate-400' : isSepia ? 'text-[#7D6B57]' : 'text-slate-500'}`}>
+                Votre nom sera instantanément ordonné selon votre total de points.
+              </span>
+              <button
+                type="submit"
+                id="submit-champion-score-btn"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8972E] text-slate-950 font-bold text-xs shadow-md hover:shadow-lg transition-transform hover:scale-105 cursor-pointer"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span>Enregistrer mon nom et mes points</span>
+              </button>
+            </div>
+          </form>
         </div>
 
         {submissionSuccessMsg && (

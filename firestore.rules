@@ -7,6 +7,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Tableau des champions des jeux bibliques
+    match /bible_champions/{champId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Par défaut : refuser tout autre accès non défini
     match /{document=**} {
       allow read: if true;

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { PageTab } from '../../types';
 import { CHURCH_INFO, ARTICLES_OF_FAITH } from '../../data/churchData';
 import { CHURCH_ASSETS } from '../../data/churchMedia';
-import { ImageModal } from '../ImageModal';
 import { 
   Sparkles, 
   Compass, 
@@ -13,7 +12,8 @@ import {
   Users, 
   ShieldCheck, 
   ArrowRight,
-  Maximize2
+  Globe2,
+  Church
 } from 'lucide-react';
 
 interface AboutViewProps {
@@ -27,7 +27,6 @@ export const AboutView: React.FC<AboutViewProps> = ({
   onOpenPrayerModal,
   onOpenDonationModal
 }) => {
-  const [modalSealOpen, setModalSealOpen] = useState(false);
   const [activeArticleIndex, setActiveArticleIndex] = useState<number>(0);
 
   return (
@@ -64,63 +63,55 @@ export const AboutView: React.FC<AboutViewProps> = ({
         </div>
       </section>
 
-      {/* Sceau & Identité Institutionnelle */}
+      {/* Identité Institutionnelle & Enracinement (Sans sceau) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="rounded-3xl border-2 border-[#D4AF37]/40 bg-white p-6 sm:p-10 shadow-xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Logo Seal */}
-            <div className="lg:col-span-4 flex flex-col items-center text-center">
-              <div 
-                className="relative h-44 w-44 rounded-3xl bg-[#081B36] p-4 border-4 border-[#D4AF37] shadow-2xl group cursor-pointer overflow-hidden flex items-center justify-center transition-transform hover:scale-105"
-                onClick={() => setModalSealOpen(true)}
-              >
-                <img 
-                  src="/images/logo.svg" 
-                  alt="Sceau Église du Nazaréen de Damé" 
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-contain"
-                />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
-                  <Maximize2 className="h-4 w-4 text-[#D4AF37]" />
-                  Agrandir le Sceau
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-2xl bg-[#0F2C59] text-[#D4AF37] flex items-center justify-center shadow-md">
+                  <Church className="h-6 w-6" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] bg-[#0F2C59] px-3 py-1 rounded-full">
+                    Appartenance & Structure Mondiale
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-bold font-display text-[#0F2C59] mt-1">
+                    Une Église enracinée dans la foi nazaréenne universelle
+                  </h2>
                 </div>
               </div>
-              <span className="mt-4 text-xs font-bold uppercase tracking-widest text-[#0F2C59]">
-                Sceau Officiel d'Identification
-              </span>
-              <p className="text-xs text-slate-500 max-w-xs mt-1">
-                Devise séculaire gravée : « Sainteté à l’Éternel »
-              </p>
+              <div className="hidden sm:flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200/80 px-4 py-1.5 text-xs font-semibold text-amber-900">
+                <Globe2 className="h-4 w-4 text-[#D4AF37]" />
+                <span>Région Méso-Amérique & Caraïbes</span>
+              </div>
             </div>
 
-            {/* Identity details */}
-            <div className="lg:col-span-8 space-y-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] bg-[#0F2C59] px-3 py-1 rounded-full">
-                Appartenance & Structure
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-bold font-display text-[#0F2C59]">
-                Une Église enracinée dans la foi nazaréenne mondiale
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                L'Église de Damé est membre à part entière de la dénomination mondiale de l'<strong>Église du Nazaréen</strong> (siège mondial à Lenexa, Kansas, USA et Région Méso-Amérique / Caraïbes), œuvrant activement au service de la communauté de Damé.
-              </p>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed max-w-4xl">
+              L'Église du Nazaréen de Damé est membre à part entière de la communion mondiale de l'<strong>Église du Nazaréen</strong> (siège mondial à Lenexa, Kansas, USA). Fondée sur la 3ème Section Rurale de Môle-Saint-Nicolas, elle unit fidélité biblique, engagement diaconal pour l'éducation des enfants à travers l'École Nazareth, formation professionnelle avec l'EPND et ferveur de sanctification.
+            </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3">
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                  <span className="text-xs text-slate-400 font-bold block uppercase">Caractère 1</span>
-                  <h4 className="text-sm font-bold text-[#0F2C59] mt-0.5">Chrétiens</h4>
-                  <p className="text-xs text-slate-600 mt-1">Confession historique trinitaire et confession universelle du Christ ressuscité.</p>
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                  <span className="text-xs text-slate-400 font-bold block uppercase">Caractère 2</span>
-                  <h4 className="text-sm font-bold text-[#0F2C59] mt-0.5">Évangéliques</h4>
-                  <p className="text-xs text-slate-600 mt-1">Autorité suprême de la Bible et impératif de la proclamation du salut par la foi.</p>
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                  <span className="text-xs text-slate-400 font-bold block uppercase">Caractère 3</span>
-                  <h4 className="text-sm font-bold text-[#0F2C59] mt-0.5">Sainteté</h4>
-                  <p className="text-xs text-slate-600 mt-1">Doctrine wesleyenne de l'entière sanctification et du parfait amour purifiant le cœur.</p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
+              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 hover:shadow-md transition-shadow">
+                <span className="text-[11px] text-[#D4AF37] font-black uppercase tracking-wider block">Pilier 1</span>
+                <h4 className="text-base font-bold text-[#0F2C59] mt-1">Chrétiens</h4>
+                <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                  Confession historique trinitaire, fidélité aux credos apostoliques et célébration vivante du Christ Seigneur et Sauveur.
+                </p>
+              </div>
+              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 hover:shadow-md transition-shadow">
+                <span className="text-[11px] text-[#D4AF37] font-black uppercase tracking-wider block">Pilier 2</span>
+                <h4 className="text-base font-bold text-[#0F2C59] mt-1">Évangéliques</h4>
+                <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                  Autorité plénière de la Bible comme règle de foi et pratique, et mandat impératif d'évangélisation envers toute créature.
+                </p>
+              </div>
+              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 hover:shadow-md transition-shadow">
+                <span className="text-[11px] text-[#D4AF37] font-black uppercase tracking-wider block">Pilier 3</span>
+                <h4 className="text-base font-bold text-[#0F2C59] mt-1">Sainteté</h4>
+                <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                  Doctrine wesleyenne de l'entière sanctification : la grâce de Dieu purifie le cœur et le remplit de parfait amour pour Dieu et le prochain.
+                </p>
               </div>
             </div>
           </div>
@@ -303,18 +294,6 @@ export const AboutView: React.FC<AboutViewProps> = ({
           </div>
         </div>
       </section>
-
-      {/* Modal Seal Zoom */}
-      <ImageModal
-        isOpen={modalSealOpen}
-        onClose={() => setModalSealOpen(false)}
-        image={{
-          src: '/images/logo.svg',
-          alt: 'Sceau Officiel Église du Nazaréen de Damé',
-          title: 'Sceau Officiel de l\'Église du Nazaréen de Damé',
-          caption: 'Emblème officiel de l\'assemblée représentant la croix, le livre ouvert de la Parole, et la devise « Sainteté à l’Éternel » à Damé (Môle-Saint-Nicolas, Haïti).'
-        }}
-      />
     </div>
   );
 };
