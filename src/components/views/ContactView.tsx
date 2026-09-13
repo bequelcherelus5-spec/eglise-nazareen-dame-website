@@ -3,6 +3,7 @@ import { CHURCH_INFO } from '../../data/churchData';
 import { CHURCH_ASSETS } from '../../data/churchMedia';
 import { ImageModal } from '../ImageModal';
 import { OfficialPhoto } from '../OfficialPhoto';
+import { ChurchLeafletMap } from '../ChurchLeafletMap';
 import { apiService } from '../../services/apiService';
 import { SubmissionCategory } from '../../types';
 import { 
@@ -222,27 +223,8 @@ export const ContactView: React.FC = () => {
               </div>
             </div>
 
-            {/* Interactive OpenStreetMap Embed Iframe */}
-            <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-              <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                <span className="text-xs font-bold text-[#0F2C59] flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4 text-[#D4AF37]" />
-                  Localisation cartographique (Môle-Saint-Nicolas / Damé)
-                </span>
-                <span className="text-[10px] text-slate-400">OpenStreetMap</span>
-              </div>
-              <div className="h-64 w-full relative bg-slate-100">
-                <iframe
-                  title="Carte Église du Nazaréen de Damé"
-                  className="w-full h-full border-0"
-                  loading="lazy"
-                  src="https://www.openstreetmap.org/export/embed.html?bbox=-73.42,19.78,-73.34,19.85&layer=mapnik&marker=19.805,-73.385"
-                />
-              </div>
-              <div className="p-3 text-[11px] text-slate-500 text-center bg-white border-t border-slate-100">
-                Rue Cimetière, 3ème Section Damé, Commune Môle-Saint-Nicolas, Nord-Ouest, Haïti.
-              </div>
-            </div>
+            {/* Carte interactive Leaflet pour situer précisément l'église à Damé, Môle-Saint-Nicolas */}
+            <ChurchLeafletMap />
           </div>
 
           {/* Right Column (Formulaire multi-usage dynamique) */}

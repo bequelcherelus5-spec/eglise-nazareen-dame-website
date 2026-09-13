@@ -1,0 +1,11 @@
+{
+  "entities": {
+    "SiteStat": {
+      "collection": "site_stats",
+      "fields": {
+        "count": { "type": "number", "description": "Nombre total de visites enregistrées" },
+        "updatedAt": { "type": "string", "description": "Horodatage de la dernière visite enregistrée" }
+      }
+    }
+  }
+}

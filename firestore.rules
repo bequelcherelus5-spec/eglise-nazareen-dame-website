@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Compteur de visites et statistiques publiques
+    match /site_stats/{statId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Par défaut : refuser tout autre accès non défini
+    match /{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

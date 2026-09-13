@@ -2,6 +2,7 @@ import React from 'react';
 import { PageTab } from '../../types';
 import { CHURCH_INFO, CHURCH_TIMELINE, NEWS_ARTICLES, SOCIAL_PROJECTS } from '../../data/churchData';
 import { ChurchPhotoGallery } from '../ChurchPhotoGallery';
+import { CommunityEngagementCounter } from '../CommunityEngagementCounter';
 import { CHURCH_ASSETS } from '../../data/churchMedia';
 import heroLogoImg from '../../assets/images/regenerated_image_1788797096407.jpg';
 import { 
@@ -59,10 +60,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Left Content */}
             <div className="lg:col-span-8 space-y-6">
-              {/* Badge Devise */}
-              <div className="inline-flex items-center gap-2 rounded-full bg-[#D4AF37]/15 px-4 py-1.5 border border-[#D4AF37]/30 text-[#D4AF37] text-xs sm:text-sm font-semibold tracking-wider uppercase">
-                <Sparkles className="h-4 w-4" />
-                Devise officielle : {CHURCH_INFO.motto}
+              {/* Badges : Devise officielle + Compteur en direct compact */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#D4AF37]/15 px-4 py-1.5 border border-[#D4AF37]/30 text-[#D4AF37] text-xs sm:text-sm font-semibold tracking-wider uppercase">
+                  <Sparkles className="h-4 w-4" />
+                  Devise officielle : {CHURCH_INFO.motto}
+                </div>
+                <CommunityEngagementCounter variant="compact" />
               </div>
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold font-display tracking-tight text-white leading-tight">
@@ -194,6 +198,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </div>
           </div>
         </div>
+      </section>
+
+      {/* 1.2 COMPTEUR D'ENGAGEMENT EN TEMPS RÉEL (Persistance Firebase Firestore) */}
+      <section id="engagement-communaute" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-20">
+        <CommunityEngagementCounter variant="full" onNavigateTab={onSelectTab} />
       </section>
 
       {/* 1.5 GALERIE PATRIMOINE VIVANT (Photos Authentiques) */}
