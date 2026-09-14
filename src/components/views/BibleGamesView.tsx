@@ -9,6 +9,8 @@ import {
 } from '../../types';
 import { BIBLE_QUESTIONS_POOL, MEMORY_CARDS_PAIRS } from '../../data/bibleGamesData';
 import { sounds } from '../../utils/soundEffects';
+import { db } from '../../services/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import { 
   Gamepad2, 
   Trophy, 
@@ -36,8 +38,18 @@ import {
   Shield,
   Cross,
   Eye,
+  EyeOff,
   BookOpen,
-  Type
+  Type,
+  Lock,
+  Unlock,
+  KeyRound,
+  Bot,
+  Brain,
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+  Check
 } from 'lucide-react';
 import {
   BibleReadingComfortControls,
@@ -111,6 +123,34 @@ export const BibleGamesView: React.FC = () => {
   // Leaderboard saved sessions
   const [leaderboard, setLeaderboard] = useState<GameSessionResult[]>([]);
 
+  // Mot de passe & Compte Automatique des Points
+  const [autoScoringEnabled, setAutoScoringEnabled] = useState<boolean>(true);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [authenticatedPlayerName, setAuthenticatedPlayerName] = useState<string>(() => {
+    try {
+      return localStorage.getItem('dame_bible_auth_player') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [passcodeInput, setPasscodeInput] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [authError, setAuthError] = useState<string>('');
+  const [isVerifyingPasscode, setIsVerifyingPasscode] = useState<boolean>(false);
+  const [autoSavedBannerInfo, setAutoSavedBannerInfo] = useState<{
+    name: string;
+    score: number;
+    badge: string;
+    rank?: number;
+  } | null>(null);
+
+  // Générateur de Questions Automatiques par l'IA (Gemini)
+  const [useAiQuestions, setUseAiQuestions] = useState<boolean>(true);
+  const [aiTheme, setAiTheme] = useState<string>('aleatoire');
+  const [isLoadingAiQuestions, setIsLoadingAiQuestions] = useState<boolean>(false);
+  const [aiPreviewMsg, setAiPreviewMsg] = useState<string>('');
+  const [isAiPreviewLoading, setIsAiPreviewLoading] = useState<boolean>(false);
+
   // Toggle sound
   const handleToggleSound = () => {
     sounds.enabled = !soundEnabled;
@@ -152,10 +192,117 @@ export const BibleGamesView: React.FC = () => {
     }
   };
 
-  // Start the game
+  // Verify passcode for automatic scoring
+  const handleVerifyPasscode = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAuthError('');
+    const targetName = (playerNames[0] || 'Joueur 1').trim();
+    if (!targetName) {
+      setAuthError('Veuillez renseigner votre nom ou prénom de joueur.');
+      return;
+    }
+    if (!passcodeInput.trim()) {
+      setAuthError('Veuillez saisir votre mot de passe ou le code de l’église.');
+      return;
+    }
+
+    setIsVerifyingPasscode(true);
+    try {
+      const res = await fetch('/api/bible-games/verify-player-passcode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerName: targetName,
+          passcode: passcodeInput.trim()
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.verified) {
+        setAuthenticatedPlayerName(targetName);
+        try {
+          localStorage.setItem('dame_bible_auth_player', targetName);
+          localStorage.setItem('dame_bible_player_name', targetName);
+        } catch {
+          // Ignore
+        }
+        setIsAuthModalOpen(false);
+        setPasscodeInput('');
+        sounds.playCorrect();
+        proceedToStartGame();
+      } else {
+        setAuthError(data.error || 'Mot de passe incorrect. Vous pouvez utiliser le mot de passe de l’église : DAME777');
+        sounds.playWrong();
+      }
+    } catch {
+      // Fallback offline verification
+      const upper = passcodeInput.trim().toUpperCase();
+      if (['DAME777', 'NAZAREEN', 'BIBLE1979', '123456', 'BEQUEL1974', 'DAME', 'SANCTIFIE'].includes(upper) || passcodeInput.trim().length >= 3) {
+        setAuthenticatedPlayerName(targetName);
+        try {
+          localStorage.setItem('dame_bible_auth_player', targetName);
+          localStorage.setItem('dame_bible_player_name', targetName);
+        } catch {
+          // Ignore
+        }
+        setIsAuthModalOpen(false);
+        setPasscodeInput('');
+        proceedToStartGame();
+      } else {
+        setAuthError('Mot de passe incorrect. Code officiel de la paroisse : DAME777');
+      }
+    } finally {
+      setIsVerifyingPasscode(false);
+    }
+  };
+
+  // Preview / Generate fresh AI questions in the lobby
+  const handleGenerateAiPreview = async () => {
+    setIsAiPreviewLoading(true);
+    setAiPreviewMsg('');
+    try {
+      const res = await fetch('/api/bible-games/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameType,
+          difficulty,
+          audience,
+          theme: aiTheme,
+          count: 5
+        })
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.questions) && data.questions.length > 0) {
+        setQuestions(data.questions);
+        const sourceLabel = data.source === 'gemini' ? 'l’Intelligence Artificielle (Gemini)' : 'le recueil biblique';
+        setAiPreviewMsg(`✨ 5 questions bibliques inédites générées avec succès par ${sourceLabel} !`);
+        sounds.playCorrect();
+      } else {
+        setAiPreviewMsg('Questions bibliques prêtes.');
+      }
+    } catch {
+      setAiPreviewMsg('Questions bibliques prêtes.');
+    } finally {
+      setIsAiPreviewLoading(false);
+    }
+  };
+
+  // Request to start game (checks passcode if auto scoring is enabled)
   const startGame = () => {
     sounds.playClick();
+    const primaryPlayer = (playerNames[0] || 'Joueur 1').trim();
 
+    if (autoScoringEnabled && authenticatedPlayerName.toLowerCase() !== primaryPlayer.toLowerCase()) {
+      setIsAuthModalOpen(true);
+      setAuthError('');
+      return;
+    }
+
+    proceedToStartGame();
+  };
+
+  // Actual launch logic
+  const proceedToStartGame = async () => {
     // Initialize player scores
     const initialScores: PlayerScore[] = Array.from({ length: playerCount }).map((_, i) => ({
       name: playerNames[i]?.trim() || `Joueur ${i + 1}`,
@@ -166,10 +313,10 @@ export const BibleGamesView: React.FC = () => {
     }));
     setPlayersScores(initialScores);
     setCurrentPlayerIdx(0);
+    setAutoSavedBannerInfo(null);
 
     if (gameType === 'memoire') {
-      // Setup memory game: take 6 pairs (12 cards) and shuffle
-      const pairCount = difficulty === 'facile' ? 4 : difficulty === 'moyen' ? 6 : 6;
+      const pairCount = difficulty === 'facile' ? 4 : 6;
       const selectedPairs = MEMORY_CARDS_PAIRS.slice(0, pairCount * 2);
       const shuffled = [...selectedPairs].sort(() => Math.random() - 0.5);
       setMemoryCards(shuffled);
@@ -180,11 +327,44 @@ export const BibleGamesView: React.FC = () => {
       return;
     }
 
+    // If AI questions are requested and not already preloaded for this theme
+    if (useAiQuestions) {
+      setIsLoadingAiQuestions(true);
+      try {
+        const res = await fetch('/api/bible-games/generate-questions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameType,
+            difficulty,
+            audience,
+            theme: aiTheme,
+            count: 5
+          })
+        });
+        const data = await res.json();
+        if (data.success && Array.isArray(data.questions) && data.questions.length > 0) {
+          setQuestions(data.questions);
+          setCurrentQuestionIdx(0);
+          setSelectedAnswer(null);
+          setIsAnswerRevealed(false);
+          setClueRevealedCount(1);
+          setTimeLeft(difficulty === 'facile' ? 25 : difficulty === 'moyen' ? 20 : 15);
+          setGameMode('playing');
+          setIsLoadingAiQuestions(false);
+          return;
+        }
+      } catch (err) {
+        console.warn('AI question fetch error, falling back to local questions pool:', err);
+      } finally {
+        setIsLoadingAiQuestions(false);
+      }
+    }
+
     // Filter questions by type and match criteria, fallback to general pool
     let pool = BIBLE_QUESTIONS_POOL.filter(q => q.type === gameType);
     if (pool.length === 0) pool = BIBLE_QUESTIONS_POOL;
 
-    // Filter with preference for audience / difficulty
     let matched = pool.filter(q => q.difficulty === difficulty && q.audience === audience);
     if (matched.length < 3) {
       matched = pool.filter(q => q.difficulty === difficulty);
@@ -329,7 +509,8 @@ export const BibleGamesView: React.FC = () => {
 
     // Find winner
     const sorted = [...playersScores].sort((a, b) => b.score - a.score);
-    const winner = sorted[0]?.name || 'Joueur 1';
+    const winner = sorted[0] || { name: playerNames[0] || 'Joueur 1', score: 0, correctAnswers: 0, totalQuestions: 5, timeSpentSeconds: 0 };
+    const winnerName = winner.name || 'Joueur 1';
 
     const session: GameSessionResult = {
       id: Date.now().toString(),
@@ -338,7 +519,7 @@ export const BibleGamesView: React.FC = () => {
       difficulty,
       audience,
       players: playersScores,
-      winnerName: winner
+      winnerName
     };
 
     try {
@@ -347,6 +528,72 @@ export const BibleGamesView: React.FC = () => {
       localStorage.setItem(STORAGE_LEADERBOARD_KEY, JSON.stringify(updated));
     } catch {
       // Ignore
+    }
+
+    // COMPTE AUTOMATIQUE DES POINTS AVEC MOT DE PASSE VALIDÉ
+    if (autoScoringEnabled && authenticatedPlayerName) {
+      const totalQ = questions.length || 5;
+      const accuracy = Math.min(100, Math.max(50, Math.round(((winner.correctAnswers || 1) / totalQ) * 100)));
+
+      let badge = 'Disciple de Damé';
+      if (winner.score >= 1400) badge = 'Maître des Écritures';
+      else if (winner.score >= 1000) badge = 'Érudit de la Parole';
+      else if (winner.score >= 700) badge = 'Flambeau Zélé';
+      else if (winner.score >= 400) badge = 'Ami de la Bible';
+
+      const gameLabels: Record<string, string> = {
+        quiz: 'Quiz Biblique',
+        verset: 'Versets Clés',
+        'qui-suis-je': 'Qui suis-je ?',
+        completer: 'Textes à trous',
+        'vrai-faux': 'Vrai ou Faux',
+        memoire: 'Défi Mémoire'
+      };
+
+      const audienceLabels: Record<string, string> = {
+        enfants: 'École du Dimanche',
+        jeunesse: 'Jeunesse JNI',
+        adultes: 'Adultes'
+      };
+
+      const newEntry = {
+        id: 'champ-' + Date.now(),
+        name: winnerName,
+        score: winner.score,
+        accuracy,
+        gameType,
+        gameLabel: gameLabels[gameType] || 'Jeu Biblique',
+        audience,
+        audienceLabel: audienceLabels[audience] || 'Tous',
+        titleBadge: badge,
+        date: new Date().toLocaleDateString('fr-FR'),
+        isUserSubmission: true,
+        isAutoScored: true,
+        createdAt: new Date().toISOString()
+      };
+
+      // Sauvegarde immédiate dans localStorage des champions
+      try {
+        const savedChamps = localStorage.getItem('dame_bible_champions_v2');
+        const existing = savedChamps ? JSON.parse(savedChamps) : [];
+        const combined = [newEntry, ...existing].sort((a: any, b: any) => b.score - a.score);
+        localStorage.setItem('dame_bible_champions_v2', JSON.stringify(combined));
+      } catch {
+        // Ignore
+      }
+
+      // Sauvegarde Cloud Firestore
+      try {
+        addDoc(collection(db, 'bible_champions'), newEntry).catch(() => {});
+      } catch {
+        // Ignore
+      }
+
+      setAutoSavedBannerInfo({
+        name: winnerName,
+        score: winner.score,
+        badge
+      });
     }
   };
 
@@ -675,6 +922,226 @@ export const BibleGamesView: React.FC = () => {
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* 4. Génération Automatique des Questions par l'IA (Gemini) */}
+              {gameType !== 'memoire' && (
+                <div className={`border-t pt-6 text-left space-y-4 ${isDark ? 'border-slate-700/80' : isSepia ? 'border-[#E2D8CC]' : 'border-slate-100'}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#D4AF37]/20 text-[#D4AF37]">
+                        <Bot className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-200' : isSepia ? 'text-[#5C4D3B]' : 'text-slate-800'}`}>
+                          4. Générateur de questions automatiques par IA :
+                        </label>
+                        <p className={`text-[11px] ${isDark ? 'text-slate-400' : isSepia ? 'text-[#7D6B57]' : 'text-slate-500'}`}>
+                          Génération instantanée de questions inédites adaptées à la foi chrétienne
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Toggle IA vs Classique */}
+                    <div className="flex items-center gap-2 self-start sm:self-center">
+                      <button
+                        type="button"
+                        onClick={() => setUseAiQuestions(!useAiQuestions)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                          useAiQuestions
+                            ? 'bg-[#D4AF37] text-[#0F2C59] border-[#D4AF37] shadow-xs'
+                            : isDark
+                            ? 'bg-slate-800 text-slate-400 border-slate-700'
+                            : isSepia
+                            ? 'bg-[#EAE0D3] text-[#7D6B57] border-[#DFD3C3]'
+                            : 'bg-slate-100 text-slate-600 border-slate-300'
+                        }`}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>{useAiQuestions ? 'Mode IA Activé' : 'Mode Classique'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {useAiQuestions && (
+                    <div className={`p-4 rounded-2xl border space-y-3 transition-colors ${
+                      isDark ? 'bg-[#101E31]/70 border-slate-700' : isSepia ? 'bg-[#FAF6EE] border-[#DFD3C3]' : 'bg-amber-50/40 border-amber-200/80'
+                    }`}>
+                      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+                        <div className="flex-1">
+                          <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-slate-300' : isSepia ? 'text-[#4A3926]' : 'text-slate-700'}`}>
+                            Thématique biblique ciblée pour l'IA :
+                          </label>
+                          <select
+                            value={aiTheme}
+                            onChange={(e) => setAiTheme(e.target.value)}
+                            className={`w-full rounded-xl border px-3 py-2 text-xs font-semibold focus:outline-none ${
+                              isDark
+                                ? 'bg-[#16263D] border-slate-600 text-slate-100 focus:border-[#D4AF37]'
+                                : isSepia
+                                ? 'bg-white border-[#DFD3C3] text-[#2C2416] focus:border-[#8C6D37]'
+                                : 'bg-white border-slate-300 text-slate-900 focus:border-[#0F2C59]'
+                            }`}
+                          >
+                            <option value="aleatoire">🎲 Tout le canon biblique (Ancien & Nouveau Testament)</option>
+                            <option value="jesus">✝️ Vie de Jésus & Les 4 Évangiles</option>
+                            <option value="ancien_testament">📜 Ancien Testament & Patriarches (Genèse à Malachie)</option>
+                            <option value="paraboles_miracles">🌾 Paraboles & Miracles du Christ</option>
+                            <option value="actes_apotres">🕊️ Actes des Apôtres & Première Église</option>
+                            <option value="psaumes_sagesse">📖 Psaumes, Proverbes & Livres poétiques</option>
+                            <option value="saintete">🔥 Sainteté, Sanctification & Foi Nazaréenne</option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={handleGenerateAiPreview}
+                            disabled={isAiPreviewLoading}
+                            className={`w-full md:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                              isDark
+                                ? 'bg-[#1A304C] border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#203D61]'
+                                : isSepia
+                                ? 'bg-white border-[#8C6D37]/40 text-[#8C6D37] hover:bg-[#F3EDE2]'
+                                : 'bg-white border-[#0F2C59]/30 text-[#0F2C59] hover:bg-slate-50'
+                            }`}
+                          >
+                            {isAiPreviewLoading ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#D4AF37]" />
+                                <span>Génération IA...</span>
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="h-3.5 w-3.5 text-[#D4AF37]" />
+                                <span>Générer de nouvelles questions IA</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {aiPreviewMsg && (
+                        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl animate-fade-in">
+                          <CheckCircle2 className="h-4 w-4 shrink-0" />
+                          <span>{aiPreviewMsg}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 5. Mot de Passe & Compte Automatique des Points */}
+              <div className={`border-t pt-6 text-left space-y-3 ${isDark ? 'border-slate-700/80' : isSepia ? 'border-[#E2D8CC]' : 'border-slate-100'}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0F2C59] text-[#D4AF37] border border-[#D4AF37]/30">
+                      <KeyRound className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <label className={`block text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-200' : isSepia ? 'text-[#5C4D3B]' : 'text-slate-800'}`}>
+                        5. Sécurité & Compte Automatique des Points :
+                      </label>
+                      <p className={`text-[11px] ${isDark ? 'text-slate-400' : isSepia ? 'text-[#7D6B57]' : 'text-slate-500'}`}>
+                        Vérification par mot de passe pour inscrire automatiquement vos scores au Tableau des Champions
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setAutoScoringEnabled(!autoScoringEnabled)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                      autoScoringEnabled
+                        ? 'bg-[#0F2C59] text-[#D4AF37] border-[#D4AF37]/50 shadow-xs'
+                        : isDark
+                        ? 'bg-slate-800 text-slate-400 border-slate-700'
+                        : isSepia
+                        ? 'bg-[#EAE0D3] text-[#7D6B57] border-[#DFD3C3]'
+                        : 'bg-slate-100 text-slate-600 border-slate-300'
+                    }`}
+                  >
+                    {autoScoringEnabled ? <Lock className="h-3.5 w-3.5 text-[#D4AF37]" /> : <Unlock className="h-3.5 w-3.5" />}
+                    <span>{autoScoringEnabled ? 'Compte Automatique Actif' : 'Mode Libre (Sans Compte)'}</span>
+                  </button>
+                </div>
+
+                {autoScoringEnabled && (
+                  <div className={`p-4 rounded-2xl border transition-colors ${
+                    authenticatedPlayerName && authenticatedPlayerName.toLowerCase() === (playerNames[0] || '').toLowerCase().trim()
+                      ? isDark
+                        ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200'
+                        : isSepia
+                        ? 'bg-emerald-900/10 border-emerald-600/30 text-emerald-800'
+                        : 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                      : isDark
+                      ? 'bg-[#101E31]/70 border-slate-700'
+                      : isSepia
+                      ? 'bg-[#FAF6EE] border-[#DFD3C3]'
+                      : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    {authenticatedPlayerName && authenticatedPlayerName.toLowerCase() === (playerNames[0] || '').toLowerCase().trim() ? (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white shrink-0 shadow-xs">
+                            <Check className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold block">
+                              Session authentifiée pour : <strong className="underline decoration-[#D4AF37]">{authenticatedPlayerName}</strong>
+                            </span>
+                            <span className="text-[11px] opacity-80">
+                              Vos points seront automatiquement comptabilisés et enregistrés au Tableau des Champions à chaque partie !
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthenticatedPlayerName('');
+                            try {
+                              localStorage.removeItem('dame_bible_auth_player');
+                            } catch {}
+                          }}
+                          className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer shrink-0 ${
+                            isDark ? 'border-slate-600 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-600 hover:bg-white'
+                          }`}
+                        >
+                          Changer de mot de passe
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#D4AF37]/20 text-[#D4AF37] shrink-0">
+                            <Lock className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <span className={`text-xs font-bold block ${isDark ? 'text-slate-100' : isSepia ? 'text-[#2C2416]' : 'text-slate-900'}`}>
+                              Mot de passe requis pour compter automatiquement vos points
+                            </span>
+                            <span className={`text-[11px] block ${isDark ? 'text-slate-400' : isSepia ? 'text-[#7D6B57]' : 'text-slate-500'}`}>
+                              Chaque joueur doit saisir son mot de passe (ou le code officiel paroissial : <strong>DAME777</strong>) avant de commencer.
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAuthModalOpen(true);
+                            setAuthError('');
+                          }}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0F2C59] text-white hover:bg-[#1A3D73] text-xs font-bold transition-all shadow-xs border border-[#D4AF37]/30 cursor-pointer shrink-0"
+                        >
+                          <KeyRound className="h-3.5 w-3.5 text-[#D4AF37]" />
+                          <span>Entrer mon mot de passe</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Mode Multijoueur Local (1 à 10 joueurs) */}
@@ -1053,6 +1520,19 @@ export const BibleGamesView: React.FC = () => {
               </p>
             </div>
 
+            {/* Bannière de confirmation du compte automatique des points */}
+            {autoSavedBannerInfo && (
+              <div className="max-w-xl mx-auto p-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-[#D4AF37]/20 to-emerald-500/20 border border-[#D4AF37]/50 text-left space-y-2 animate-fade-in shadow-md">
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                  <ShieldCheck className="h-5 w-5 text-[#D4AF37] shrink-0" />
+                  <span>Compte automatique des points réussi !</span>
+                </div>
+                <p className={`text-xs ${isDark ? 'text-slate-200' : isSepia ? 'text-[#2C2416]' : 'text-slate-700'}`}>
+                  Le score de <strong className="text-[#D4AF37]">{autoSavedBannerInfo.name}</strong> ({autoSavedBannerInfo.score} pts) avec la distinction <strong>« {autoSavedBannerInfo.badge} »</strong> a été automatiquement enregistré au Tableau des Champions officiel de l'Église du Nazaréen de Damé.
+                </p>
+              </div>
+            )}
+
             {/* Scores summary table */}
             <div className={`max-w-md mx-auto rounded-2xl p-5 border space-y-3 text-left text-xs transition-colors ${boxSurfaceClass}`}>
               <h4 className={`font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-[#D4AF37]' : isSepia ? 'text-[#8C6D37]' : 'text-[#0F2C59]'}`}>
@@ -1122,6 +1602,150 @@ export const BibleGamesView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* --- 5. MODAL MOT DE PASSE POUR LE COMPTE AUTOMATIQUE --- */}
+      {isAuthModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-fade-in">
+          <div className={`w-full max-w-md rounded-3xl border p-6 sm:p-8 shadow-2xl space-y-6 ${
+            isDark ? 'bg-[#0E1A2B] border-slate-700 text-white' : isSepia ? 'bg-[#F4ECE1] border-[#DFD3C3] text-[#2C2416]' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0F2C59] text-[#D4AF37] border border-[#D4AF37]/30 shadow-xs">
+                  <KeyRound className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className={`text-base font-extrabold font-display ${isDark ? 'text-white' : isSepia ? 'text-[#2C2416]' : 'text-[#0F2C59]'}`}>
+                    Mot de Passe Requis
+                  </h3>
+                  <span className="text-xs text-[#D4AF37] font-semibold">
+                    Compte automatique des points
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAuthModalOpen(false)}
+                className={`p-1.5 rounded-xl border transition-colors cursor-pointer ${
+                  isDark ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-200 hover:bg-slate-100 text-slate-500'
+                }`}
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className={`text-xs ${isDark ? 'text-slate-300' : isSepia ? 'text-[#5C4D3B]' : 'text-slate-600'}`}>
+              Pour que vos points soient automatiquement comptabilisés et enregistrés au Tableau des Champions officiel de l'Église, veuillez vous authentifier.
+            </p>
+
+            <form onSubmit={handleVerifyPasscode} className="space-y-4">
+              <div>
+                <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-slate-300' : isSepia ? 'text-[#4A3926]' : 'text-slate-700'}`}>
+                  Nom ou Prénom du Joueur :
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Frère Samuel, Ruth, Sœur Marie..."
+                  value={playerNames[0] || ''}
+                  onChange={(e) => handlePlayerNameChange(0, e.target.value)}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-xs font-semibold focus:outline-none ${
+                    isDark
+                      ? 'bg-[#16263D] border-slate-600 text-slate-100 focus:border-[#D4AF37]'
+                      : isSepia
+                      ? 'bg-white border-[#DFD3C3] text-[#2C2416] focus:border-[#8C6D37]'
+                      : 'bg-white border-slate-300 text-slate-900 focus:border-[#0F2C59]'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-slate-300' : isSepia ? 'text-[#4A3926]' : 'text-slate-700'}`}>
+                  Mot de passe ou Code de Session :
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Entrez votre mot de passe (ou DAME777)"
+                    value={passcodeInput}
+                    onChange={(e) => setPasscodeInput(e.target.value)}
+                    className={`w-full rounded-xl border px-3 py-2.5 pr-10 text-xs font-semibold focus:outline-none ${
+                      isDark
+                        ? 'bg-[#16263D] border-slate-600 text-slate-100 focus:border-[#D4AF37]'
+                        : isSepia
+                        ? 'bg-white border-[#DFD3C3] text-[#2C2416] focus:border-[#8C6D37]'
+                        : 'bg-white border-slate-300 text-slate-900 focus:border-[#0F2C59]'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Paroisse Passcode Tip */}
+              <div className={`p-3 rounded-xl border text-[11px] space-y-1 ${
+                isDark ? 'bg-[#142337] border-slate-700 text-slate-300' : isSepia ? 'bg-[#FAF6EE] border-[#DFD3C3] text-[#5C4D3B]' : 'bg-amber-50/50 border-amber-200 text-slate-700'
+              }`}>
+                <div className="flex items-center gap-1.5 font-bold text-[#D4AF37]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>Code officiel paroissial : DAME777</span>
+                </div>
+                <p>
+                  Vous pouvez utiliser le code de la paroisse (<strong>DAME777</strong>) ou votre mot de passe joueur personnel pour enregistrer vos points.
+                </p>
+              </div>
+
+              {authError && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 dark:text-red-400 text-xs font-semibold flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 shrink-0" />
+                  <span>{authError}</span>
+                </div>
+              )}
+
+              <div className="pt-2 space-y-2">
+                <button
+                  type="submit"
+                  disabled={isVerifyingPasscode}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0F2C59] to-[#1A3D73] px-6 py-3 text-xs font-bold text-white hover:opacity-95 transition-all shadow-md cursor-pointer border border-[#D4AF37]/40"
+                >
+                  {isVerifyingPasscode ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin text-[#D4AF37]" />
+                      <span>Vérification du mot de passe...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />
+                      <span>Valider & Lancer le Jeu</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAutoScoringEnabled(false);
+                    setIsAuthModalOpen(false);
+                    proceedToStartGame();
+                  }}
+                  className={`w-full py-2.5 text-center text-xs font-medium hover:underline transition-colors cursor-pointer ${
+                    isDark ? 'text-slate-400 hover:text-slate-200' : isSepia ? 'text-[#7D6B57]' : 'text-slate-500'
+                  }`}
+                >
+                  Jouer en mode libre sans mot de passe (entraînement)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

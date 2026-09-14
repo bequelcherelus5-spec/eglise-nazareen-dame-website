@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 import { 
   dbSubmissions, 
   dbSubscribers, 
@@ -15,6 +15,7 @@ import {
   SubmissionStatus 
 } from './server/db';
 import { CHURCH_SYSTEM_PROMPT, getLocalAssistantReply } from './server/churchBotKnowledge';
+import { generateDynamicBibleQuestions } from './server/bibleQuestionGenerator';
 import { createServer as createViteServer } from 'vite';
 
 dotenv.config();
@@ -950,55 +951,217 @@ function getLocalAssistantResponse(userMsg: string): string {
     `N'hésitez pas à me poser une question précise !`;
 }
 
-app.post('/api/assistant/chat', async (req: Request, res: Response) => {
+// ----------------------------------------------------
+// BIBLE GAMES API: PASSCODE AUTH & GEMINI AI QUESTIONS
+// ----------------------------------------------------
+
+const PLAYER_PASSWORDS_FILE = path.join(process.cwd(), 'data', 'player_passwords.json');
+let playerPasswords: Record<string, string> = {};
+try {
+  if (fs.existsSync(PLAYER_PASSWORDS_FILE)) {
+    playerPasswords = JSON.parse(fs.readFileSync(PLAYER_PASSWORDS_FILE, 'utf-8'));
+  }
+} catch (e) {
+  // Ignore
+}
+
+function savePlayerPasswords() {
   try {
-    const { message, history } = req.body;
-    if (!message || typeof message !== 'string') {
-      res.status(400).json({ success: false, error: 'Message requis.' });
+    const dir = path.join(process.cwd(), 'data');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(PLAYER_PASSWORDS_FILE, JSON.stringify(playerPasswords, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Error saving player passwords:', e);
+  }
+}
+
+// Official parish game passwords (easy for members/youth to use)
+const OFFICIAL_PARISH_GAME_PASSWORDS = [
+  'DAME777',
+  'NAZAREEN',
+  'BIBLE1979',
+  '123456',
+  'BEQUEL1974',
+  'DAME',
+  'SANCTIFIE',
+  'SAINTETE'
+];
+
+// Verify or initialize a player password for automatic score recording
+app.post('/api/bible-games/verify-player-passcode', (req: Request, res: Response) => {
+  try {
+    const { playerName, passcode } = req.body;
+    const cleanName = String(playerName || '').trim();
+    const cleanPass = String(passcode || '').trim();
+
+    if (!cleanName) {
+      res.status(400).json({ success: false, error: 'Veuillez renseigner votre nom ou prénom de joueur.' });
+      return;
+    }
+    if (!cleanPass) {
+      res.status(400).json({ success: false, error: 'Veuillez saisir le mot de passe pour le compte automatique.' });
       return;
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const normName = cleanName.toLowerCase();
+    const normPassUpper = cleanPass.toUpperCase();
 
-    if (apiKey && apiKey.trim() !== '' && apiKey !== 'MY_GEMINI_API_KEY') {
-      try {
-        const { GoogleGenAI } = await import('@google/genai');
-        const ai = new GoogleGenAI({ apiKey });
+    // Check official parish game codes
+    const isParishPass = OFFICIAL_PARISH_GAME_PASSWORDS.includes(normPassUpper);
 
-        let conversationContext = '';
-        if (Array.isArray(history) && history.length > 0) {
-          conversationContext = history.slice(-4).map((h: any) => `${h.role === 'user' ? 'Fidèle' : 'Assistant'}: ${h.content}`).join('\n') + '\n';
-        }
+    // Check player custom password if one was set
+    const existingPass = playerPasswords[normName];
 
-        const prompt = `${conversationContext}Fidèle: ${message}\nAssistant:`;
-
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: prompt,
-          config: {
-            systemInstruction: CHURCH_KNOWLEDGE_SYSTEM_PROMPT,
-            temperature: 0.7,
-            maxOutputTokens: 800,
-          }
+    if (existingPass) {
+      if (existingPass.toLowerCase() === cleanPass.toLowerCase() || isParishPass) {
+        res.json({
+          success: true,
+          verified: true,
+          playerName: cleanName,
+          message: 'Mot de passe validé avec succès ! Le compte automatique des points est actif.'
         });
-
-        const reply = response.text || getLocalAssistantResponse(message);
-        res.json({ success: true, reply, source: 'ai' });
         return;
-      } catch (geminiErr) {
-        console.warn('Gemini API call failed or timed out, using infallible local knowledge base:', geminiErr);
-        const reply = getLocalAssistantResponse(message);
-        res.json({ success: true, reply, source: 'knowledge_base' });
+      } else {
+        res.status(401).json({
+          success: false,
+          error: `Mot de passe incorrect pour le joueur "${cleanName}". Vous pouvez utiliser le mot de passe de l'église (DAME777) ou votre mot de passe personnel.`
+        });
         return;
       }
     } else {
-      // Direct local knowledge base response
-      const reply = getLocalAssistantResponse(message);
-      res.json({ success: true, reply, source: 'knowledge_base' });
+      // First time this player plays: if they entered an official pass or a new custom password (min 3 chars)
+      if (isParishPass || cleanPass.length >= 3) {
+        playerPasswords[normName] = cleanPass;
+        savePlayerPasswords();
+        res.json({
+          success: true,
+          verified: true,
+          isNewPlayerPassword: true,
+          playerName: cleanName,
+          message: 'Mot de passe enregistré et validé ! Le compte automatique des points est maintenant activé pour votre compte joueur.'
+        });
+        return;
+      } else {
+        res.status(400).json({
+          success: false,
+          error: 'Le mot de passe doit comporter au moins 3 caractères ou être le code officiel de la paroisse (DAME777).'
+        });
+        return;
+      }
     }
   } catch (err) {
-    console.error('Error in /api/assistant/chat:', err);
-    res.status(500).json({ success: false, error: 'Erreur lors du traitement de la requête.' });
+    console.error('Error verifying player passcode:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la vérification du mot de passe.' });
+  }
+});
+
+// Generate fresh Bible questions using Gemini AI (with infallible dynamic fallback)
+app.post('/api/bible-games/generate-questions', async (req: Request, res: Response) => {
+  try {
+    const { 
+      gameType = 'quiz', 
+      difficulty = 'moyen', 
+      audience = 'jeunesse', 
+      theme = 'général', 
+      count = 5 
+    } = req.body;
+
+    const client = getGeminiClient();
+
+    if (client) {
+      try {
+        const themePrompt = theme && theme !== 'général' 
+          ? `Portant spécifiquement sur le thème : "${theme}".` 
+          : 'Portant sur l\'ensemble des Écritures saintes (Ancien et Nouveau Testament).';
+
+        const prompt = `Génère exactement ${count} questions bibliques captivantes, précises et théologiquement fidèles à la Bible pour l'Église du Nazaréen de Damé en Haïti.
+Paramètres :
+- Type de jeu : ${gameType} (options : quiz = choix multiples, verset = retrouver le verset exact, qui-suis-je = devinette de personnage biblique avec indices, vrai-faux = affirmation théologique ou biblique à juger).
+- Niveau de difficulté : ${difficulty} (facile = débutants/enfants, moyen = jeunes/intermédiaire, difficile = approfondi/adultes).
+- Public cible : ${audience} (enfants, jeunesse, adultes).
+- Thème : ${themePrompt}
+
+Chaque question générée doit impérativement respecter ce format JSON :
+- id: identifiant textuel unique (ex: "ai-${Date.now()}-1")
+- type: "${gameType}"
+- difficulty: "${difficulty}"
+- audience: "${audience}"
+- question: énoncé clair et stimulant en français
+- options: tableau de 4 options (ou 2 pour vrai-faux : ["Vrai", "Faux"])
+- correctAnswer: texte exact de la bonne réponse figurant dans options
+- scriptureReference: livre, chapitre et verset précis (ex: "Jean 3:16" ou "Genèse 12:1-3")
+- explanation: explication spirituelle et biblique de 2 phrases, bienveillante et édifiante
+- clues: (uniquement si type est "qui-suis-je") tableau de 3 indices progressifs
+`;
+
+        const response = await client.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: prompt,
+          config: {
+            systemInstruction: `Tu es un théologien chrétien et pédagogue biblique pour l'Église du Nazaréen de Damé en Haïti.
+Devise : « Sainteté à l’Éternel ».
+Tu produis des questions bibliques conformes à la traduction Louis Segond.
+Tu réponds STRICTEMENT sous la forme d'un tableau JSON d'objets sans aucun formatage Markdown extérieur ni texte introductif.`,
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  type: { type: Type.STRING },
+                  difficulty: { type: Type.STRING },
+                  audience: { type: Type.STRING },
+                  question: { type: Type.STRING },
+                  options: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                  },
+                  correctAnswer: { type: Type.STRING },
+                  scriptureReference: { type: Type.STRING },
+                  explanation: { type: Type.STRING },
+                  clues: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                  }
+                },
+                required: ['id', 'type', 'difficulty', 'audience', 'question', 'options', 'correctAnswer', 'scriptureReference', 'explanation']
+              }
+            },
+            temperature: 0.7,
+          }
+        });
+
+        const rawText = response.text;
+        if (rawText) {
+          const parsed = JSON.parse(rawText.trim());
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            res.json({
+              success: true,
+              source: 'gemini',
+              model: 'gemini-3.8-flash',
+              count: parsed.length,
+              questions: parsed
+            });
+            return;
+          }
+        }
+      } catch (geminiErr) {
+        console.warn('Gemini question generation failed, using dynamic local pool:', geminiErr);
+      }
+    }
+
+    // Dynamic fallback
+    const fallbackQuestions = generateDynamicBibleQuestions(gameType, difficulty, audience, theme, count);
+    res.json({
+      success: true,
+      source: 'fallback',
+      count: fallbackQuestions.length,
+      questions: fallbackQuestions
+    });
+  } catch (err) {
+    console.error('Error in /api/bible-games/generate-questions:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la génération des questions bibliques.' });
   }
 });
 
