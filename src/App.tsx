@@ -35,6 +35,10 @@ import { DonationModal } from './components/DonationModal';
 import { EpndEnrollmentModal } from './components/EpndEnrollmentModal';
 import { ChurchAssistantBot } from './components/ChurchAssistantBot';
 
+// SEO & Analytics
+import { applyViewSeo } from './utils/viewSeoConfig';
+import { trackVisitorLocation } from './utils/visitorDetector';
+
 const validViews: PageTab[] = [
   'accueil', 
   'a-propos', 
@@ -179,6 +183,16 @@ export default function App() {
       window.removeEventListener('hashchange', onLocationChange);
       window.removeEventListener('popstate', onLocationChange);
     };
+  }, [currentView]);
+
+  // Dynamic SEO Synchronization and Real-Time Visitor Logging
+  useEffect(() => {
+    // 1. Appliquer les balises de titres, meta description et keywords pour la vue active
+    applyViewSeo(currentView);
+
+    // 2. Enregistrer la visite avec géolocalisation IP silencieuse côté client
+    const currentPath = window.location.hash || window.location.pathname || '/' + currentView;
+    trackVisitorLocation(currentPath);
   }, [currentView]);
 
   const handleOpenEpndEnrollModal = (courseId?: string) => {

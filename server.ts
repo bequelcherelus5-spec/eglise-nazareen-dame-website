@@ -16,6 +16,8 @@ import {
 } from './server/db';
 import { CHURCH_SYSTEM_PROMPT, getLocalAssistantReply } from './server/churchBotKnowledge';
 import { generateDynamicBibleQuestions } from './server/bibleQuestionGenerator';
+import { analyticsStore } from './server/analyticsStore';
+import { generateEcclesiasticalDocument } from './server/documentGenerator';
 import { createServer as createViteServer } from 'vite';
 
 dotenv.config();
@@ -809,6 +811,106 @@ app.delete('/api/events/:id', requireAdminAuth, (req: Request, res: Response) =>
     res.json({ success: true, message: 'Événement supprimé avec succès.' });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Erreur lors de la suppression de l’événement.' });
+  }
+});
+
+// ----------------------------------------------------
+// ANALYTICS & VISITOR TRACKING API
+// ----------------------------------------------------
+
+// Endpoint public pour enregistrer la visite d'un internaute
+app.post('/api/analytics/log-visit', (req: Request, res: Response) => {
+  try {
+    const rawIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 
+      req.socket.remoteAddress || 
+      '190.115.178.42';
+    
+    // Si l'IP est localhost (::1 ou 127.0.0.1), on la transforme en IP représentative ou clientIp
+    const ip = req.body?.ip || (rawIp.includes('127.0.0.1') || rawIp === '::1' ? '190.115.178.42' : rawIp);
+
+    const logged = analyticsStore.logVisit({
+      ip,
+      country: req.body?.country,
+      countryCode: req.body?.countryCode,
+      city: req.body?.city,
+      region: req.body?.region,
+      page: req.body?.page || '/',
+      userAgent: req.headers['user-agent'] || ''
+    });
+
+    res.json({ success: true, log: logged });
+  } catch (err) {
+    console.warn('Error logging visitor:', err);
+    res.status(500).json({ success: false, error: 'Erreur d’enregistrement de la visite.' });
+  }
+});
+
+// Endpoint pour récupérer le sommaire et le tableau récapitulatif pour le secrétariat
+app.get('/api/analytics/summary', (req: Request, res: Response) => {
+  try {
+    const summary = analyticsStore.getSummary();
+    res.json({ success: true, summary });
+  } catch (err) {
+    console.error('Error fetching analytics summary:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la récupération des analytics.' });
+  }
+});
+
+// ----------------------------------------------------
+// GÉNÉRATEUR AUTOMATIQUE DE LETTRES & CERTIFICATS (GEMINI IA)
+// ----------------------------------------------------
+
+app.post('/api/admin/generate-document', async (req: Request, res: Response) => {
+  try {
+    const {
+      documentType = 'recommandation',
+      recipientName,
+      recipientRole,
+      parishionerDetails,
+      issueDate,
+      place,
+      additionalNotes,
+      baptismDate,
+      destinationChurch,
+      eventDate
+    } = req.body;
+
+    if (!recipientName || !String(recipientName).trim()) {
+      res.status(400).json({
+        success: false,
+        error: 'Le nom complet du destinataire ou bénéficiaire est obligatoire.'
+      });
+      return;
+    }
+
+    const client = getGeminiClient();
+    const docData = await generateEcclesiasticalDocument(
+      {
+        documentType,
+        recipientName: String(recipientName).trim(),
+        recipientRole,
+        parishionerDetails,
+        issueDate,
+        place,
+        additionalNotes,
+        baptismDate,
+        destinationChurch,
+        eventDate
+      },
+      client
+    );
+
+    res.json({
+      success: true,
+      document: docData,
+      source: client ? 'gemini-3.8-flash' : 'ecclesiastical-template'
+    });
+  } catch (err) {
+    console.error('Error generating document with Gemini:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la génération du document officiel.'
+    });
   }
 });
 

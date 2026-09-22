@@ -194,6 +194,9 @@ export interface NewsletterSubscriber {
 }
 
 export type PublicationStatus = 'Brouillon' | 'En attente' | 'Publiée' | 'Archivée';
+export type PublicationKind = 'article' | 'annonce' | 'projet';
+export type EditorMode = 'visual' | 'html';
+export type ProjectProgressStatus = 'Planifié' | 'En cours' | 'Terminé';
 
 export interface ChurchPublication {
   id: string;
@@ -207,6 +210,67 @@ export interface ChurchPublication {
   status: PublicationStatus;
   createdAt: string;
   updatedAt?: string;
+  
+  // Nouveaux modes d'édition et types de publications
+  publicationType?: PublicationKind;
+  editorMode?: EditorMode;
+  hasCustomImage?: boolean;
+  
+  // Champs spécifiques aux Projets communautaires
+  budget?: string; // ex: "$5,000 USD" ou "250,000 HTG MonCash"
+  targetGoal?: string; // ex: "Approvisionner en eau potable 300 familles"
+  projectStatus?: ProjectProgressStatus;
+}
+
+// ----------------------------------------------------
+// Analytics & Suivi des Visiteurs
+// ----------------------------------------------------
+export interface VisitorLogEntry {
+  id: string;
+  ip: string;
+  country: string;
+  countryCode: string;
+  flagEmoji: string;
+  city?: string;
+  region?: string;
+  page: string;
+  timestamp: string;
+  userAgent?: string;
+}
+
+export interface VisitorAnalyticsSummary {
+  totalVisits: number;
+  onlineNow: number;
+  countriesCount: number;
+  topCountries: { country: string; flag: string; count: number }[];
+  recentVisits: VisitorLogEntry[];
+}
+
+// ----------------------------------------------------
+// Générateur de Lettres & Documents Ecclésiastiques (IA Gemini)
+// ----------------------------------------------------
+export type EcclesiasticalDocumentType = 
+  | 'recommandation'
+  | 'bapteme'
+  | 'membre'
+  | 'invitation'
+  | 'benevolat';
+
+export interface GeneratedDocumentData {
+  documentType: EcclesiasticalDocumentType;
+  title: string;
+  recipientName: string;
+  recipientRole?: string;
+  parishionerDetails?: string;
+  churchName: string;
+  pastorName: string;
+  issueDate: string;
+  place: string;
+  bodyContent: string;
+  biblicalVerse?: string;
+  sealImageUrl?: string;
+  signatureImageUrl?: string;
+  referenceNumber: string;
 }
 
 export type EventStatus = 'Brouillon' | 'Publié' | 'Terminé' | 'Annulé';

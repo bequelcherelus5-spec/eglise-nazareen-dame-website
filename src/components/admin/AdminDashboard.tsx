@@ -55,10 +55,14 @@ import {
   Key,
   Lock,
   RotateCcw,
-  BookOpen
+  BookOpen,
+  Globe,
+  ScrollText
 } from 'lucide-react';
 import { PublicationsManager } from './PublicationsManager';
 import { EventsManager } from './EventsManager';
+import { AnalyticsDashboard } from './AnalyticsDashboard';
+import { LetterGeneratorView } from './LetterGeneratorView';
 import { 
   validateAudioFile, 
   compressAudioFile, 
@@ -80,6 +84,8 @@ type DashboardTab =
   | 'events'
   | 'publications'
   | 'podcasts'
+  | 'letter-generator'
+  | 'analytics'
   | 'security';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -770,6 +776,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
               <span className="text-[10px] opacity-70 font-mono">
                 {podcasts.length}
+              </span>
+            </button>
+
+            {/* Modules Spécifiques Secrétariat */}
+            <div className="pt-2 pb-1 px-3">
+              <span className="text-[10px] uppercase font-bold text-[#D4AF37] tracking-wider">
+                Espace Secrétariat
+              </span>
+            </div>
+
+            <button
+              onClick={() => { setActiveTab('letter-generator'); }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'letter-generator'
+                  ? 'bg-[#D4AF37] text-slate-950 font-bold shadow-sm'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <ScrollText className="h-4 w-4 text-[#D4AF37]" />
+                <span>Générateur de Lettres</span>
+              </div>
+              <span className="text-[9px] bg-blue-500/30 text-blue-200 border border-blue-400/40 px-1.5 py-0.5 rounded font-bold">
+                IA Gemini
+              </span>
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('analytics'); }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'analytics'
+                  ? 'bg-[#D4AF37] text-slate-950 font-bold shadow-sm'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Globe className="h-4 w-4 text-emerald-400" />
+                <span>Audience & Visiteurs</span>
+              </div>
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
             </button>
 
@@ -2048,6 +2096,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <PublicationsManager 
               onPublicationsChanged={loadData}
             />
+          )}
+
+          {/* 10. GENERATEUR DE LETTRES & DOCUMENTS ECCLÉSIASTIQUES (IA GEMINI) */}
+          {activeTab === 'letter-generator' && (
+            <LetterGeneratorView />
+          )}
+
+          {/* 11. AUDIENCE, ANALYTICS & VISITEURS EN DIRECT */}
+          {activeTab === 'analytics' && (
+            <AnalyticsDashboard />
           )}
 
         </div>
