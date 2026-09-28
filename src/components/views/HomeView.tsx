@@ -359,7 +359,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   Projets Sociaux & CDEJ
                 </h3>
                 <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-                  Partenariat avec Compassion International (2019) pour 250+ enfants, et nouveau projet caprin avec la Fondation Digicel (2026).
+                  Énergie solaire avec la Honnold Foundation (2026), parrainage CDEJ avec Compassion International (2019) pour 250+ enfants, et élevage caprin.
                 </p>
               </div>
               <button

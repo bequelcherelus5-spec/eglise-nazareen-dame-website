@@ -71,6 +71,11 @@ export interface SocialProject {
   description: string;
   impactMetrics: { label: string; value: string }[];
   keyObjectives: string[];
+  externalUrl?: string;
+  pastorQuote?: {
+    text: string;
+    author: string;
+  };
 }
 
 export interface NewsArticle {
@@ -220,6 +225,9 @@ export interface ChurchPublication {
   budget?: string; // ex: "$5,000 USD" ou "250,000 HTG MonCash"
   targetGoal?: string; // ex: "Approvisionner en eau potable 300 familles"
   projectStatus?: ProjectProgressStatus;
+  externalUrl?: string; // Lien externe officiel (ex: Honnold Foundation)
+  pastorQuote?: { text: string; author: string } | string;
+  impactMetrics?: { label: string; value: string }[];
 }
 
 // ----------------------------------------------------

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SOCIAL_PROJECTS } from '../../data/churchData';
 import { ChurchPublication } from '../../types';
-import { apiService } from '../../services/apiService';
+import { apiService, HONNOLD_SOLAR_PROJECT } from '../../services/apiService';
 import { DEFAULT_CHURCH_IMAGE } from '../../utils/imageOptimizer';
 import { AdSenseUnit } from '../ads/AdSenseUnit';
 import { 
@@ -21,7 +21,10 @@ import {
   RefreshCw,
   Clock,
   Layers,
-  Code2
+  Code2,
+  ExternalLink,
+  Quote,
+  Sun
 } from 'lucide-react';
 
 interface SocialProjectsViewProps {
@@ -31,16 +34,19 @@ interface SocialProjectsViewProps {
 export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
   onOpenDonationModal
 }) => {
-  const [dynamicProjects, setDynamicProjects] = useState<ChurchPublication[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  // Initialisation directe avec les données statiques du projet pour affichage immédiat sans dépendance au localStorage
+  const [dynamicProjects, setDynamicProjects] = useState<ChurchPublication[]>([HONNOLD_SOLAR_PROJECT]);
+  const [loading, setLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const fetchProjects = useCallback(async (isManualRefresh: boolean = false) => {
     if (isManualRefresh) setRefreshing(true);
     try {
-      // Récupérer les publications de type projet publiées
+      // Récupérer les publications de type projet publiées depuis le backend / API
       const pubs = await apiService.getProjects(false);
-      setDynamicProjects(pubs);
+      if (pubs && pubs.length > 0) {
+        setDynamicProjects(pubs);
+      }
     } catch (err) {
       console.warn('[SocialProjectsView] Erreur lors du chargement des projets publiés:', err);
     } finally {
@@ -177,10 +183,16 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
                           </span>
                         )}
 
+                        {pub.category && (
+                          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold uppercase bg-[#0F2C59]/10 text-[#0F2C59]">
+                            {pub.category}
+                          </span>
+                        )}
+
                         {pub.budget && (
                           <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-semibold">
                             <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Budget : <strong>{pub.budget}</strong></span>
+                            <span>Budget / Partenaire : <strong>{pub.budget}</strong></span>
                           </span>
                         )}
 
@@ -209,6 +221,39 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
                         </p>
                       )}
 
+                      {/* Impact & Métriques Clés */}
+                      {pub.impactMetrics && pub.impactMetrics.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                          {pub.impactMetrics.map((metric, idx) => (
+                            <div key={idx} className="rounded-2xl bg-amber-50/50 border border-amber-200/60 p-3.5 text-center shadow-xs">
+                              <div className="text-xl sm:text-2xl font-black text-[#0F2C59] font-display">
+                                {metric.value}
+                              </div>
+                              <div className="text-xs text-slate-600 font-semibold mt-0.5">
+                                {metric.label}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Citation pastorale officielle */}
+                      {pub.pastorQuote && (
+                        <blockquote className="my-3 p-4 sm:p-5 rounded-2xl bg-amber-50/70 border-l-4 border-[#D4AF37] space-y-2">
+                          <div className="flex items-start gap-2.5">
+                            <Quote className="w-5 h-5 text-[#D4AF37] shrink-0 mt-0.5" />
+                            <p className="text-sm font-medium italic text-slate-800 leading-relaxed">
+                              « {typeof pub.pastorQuote === 'string' ? pub.pastorQuote : pub.pastorQuote.text} »
+                            </p>
+                          </div>
+                          {typeof pub.pastorQuote === 'object' && pub.pastorQuote.author && (
+                            <p className="text-xs font-bold text-[#0F2C59] pl-7">
+                              — {pub.pastorQuote.author}
+                            </p>
+                          )}
+                        </blockquote>
+                      )}
+
                       {/* Rendu du contenu : mode HTML personnalisé ou mode texte formatté */}
                       {pub.editorMode === 'html' ? (
                         <div 
@@ -220,6 +265,22 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
                           {pub.content}
                         </div>
                       )}
+
+                      {/* Bouton vers le lien officiel externe */}
+                      {pub.externalUrl && (
+                        <div className="pt-2">
+                          <a
+                            href={pub.externalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-[#0F2C59] border border-[#D4AF37]/60 text-xs font-bold transition-all shadow-xs group"
+                          >
+                            <Sun className="w-4 h-4 text-[#D4AF37]" />
+                            <span>Consulter la page officielle du partenariat sur Honnold Foundation</span>
+                            <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#0F2C59]" />
+                          </a>
+                        </div>
+                      )}
                     </div>
 
                     {/* Footer de la carte */}
@@ -229,14 +290,28 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
                         <span>Porté par : <strong className="text-slate-700">{pub.author || 'Secrétariat de l\'Église'}</strong></span>
                       </div>
 
-                      <button
-                        onClick={onOpenDonationModal}
-                        className="inline-flex items-center gap-2 rounded-xl bg-[#0F2C59] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#1A3D73] transition-colors self-start sm:self-auto shrink-0 shadow-sm cursor-pointer"
-                      >
-                        <Heart className="h-3.5 w-3.5 text-[#D4AF37]" />
-                        <span>Soutenir ce projet</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex flex-wrap items-center gap-3">
+                        {pub.externalUrl && (
+                          <a
+                            href={pub.externalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#0F2C59] hover:text-[#B38E22] hover:underline"
+                          >
+                            <span>Lien externe officiel</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+
+                        <button
+                          onClick={onOpenDonationModal}
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#0F2C59] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#1A3D73] transition-colors self-start sm:self-auto shrink-0 shadow-sm cursor-pointer"
+                        >
+                          <Heart className="h-3.5 w-3.5 text-[#D4AF37]" />
+                          <span>Soutenir ce projet</span>
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </article>
@@ -270,13 +345,16 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
 
         {SOCIAL_PROJECTS.map((project) => {
           const isDigicel = project.id === 'elevage-caprin';
+          const isHonnold = project.id === 'energie-solaire-honnold';
           return (
             <div
               key={project.id}
               className={`rounded-3xl border overflow-hidden transition-all ${
-                isDigicel 
-                  ? 'border-[#D4AF37] bg-gradient-to-br from-white via-amber-50/20 to-white shadow-md' 
-                  : 'border-slate-200 bg-white shadow-sm'
+                isHonnold
+                  ? 'border-[#D4AF37] bg-gradient-to-br from-white via-amber-50/30 to-white shadow-md'
+                  : isDigicel 
+                    ? 'border-[#D4AF37] bg-gradient-to-br from-white via-amber-50/20 to-white shadow-md' 
+                    : 'border-slate-200 bg-white shadow-sm'
               }`}
             >
               <div className="p-8 sm:p-10 space-y-6">
@@ -301,18 +379,48 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
                     </h3>
                   </div>
 
-                  <button
-                    onClick={onOpenDonationModal}
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#0F2C59] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#1A3D73] transition-colors self-start sm:self-auto shrink-0 shadow-sm cursor-pointer"
-                  >
-                    Soutenir ce projet
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto shrink-0">
+                    {project.externalUrl && (
+                      <a
+                        href={project.externalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#D4AF37]/60 bg-amber-50/80 px-4 py-2.5 text-xs font-bold text-[#0F2C59] hover:bg-amber-100 transition-colors shadow-xs"
+                      >
+                        <Sun className="h-3.5 w-3.5 text-[#D4AF37]" />
+                        <span>Fiche officielle</span>
+                        <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
+                      </a>
+                    )}
+
+                    <button
+                      onClick={onOpenDonationModal}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#0F2C59] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#1A3D73] transition-colors shadow-sm cursor-pointer"
+                    >
+                      Soutenir ce projet
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-4xl">
                   {project.description}
                 </p>
+
+                {/* Citation pastorale si disponible */}
+                {project.pastorQuote && (
+                  <blockquote className="p-4 sm:p-5 rounded-2xl bg-amber-50/80 border-l-4 border-[#D4AF37] space-y-2">
+                    <div className="flex items-start gap-2.5">
+                      <Quote className="w-5 h-5 text-[#D4AF37] shrink-0 mt-0.5" />
+                      <p className="text-sm font-medium italic text-slate-800 leading-relaxed">
+                        « {project.pastorQuote.text} »
+                      </p>
+                    </div>
+                    <p className="text-xs font-bold text-[#0F2C59] pl-7">
+                      — {project.pastorQuote.author}
+                    </p>
+                  </blockquote>
+                )}
 
                 {/* Metrics Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
@@ -342,6 +450,21 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
                     ))}
                   </div>
                 </div>
+
+                {/* Lien externe Honnold Foundation */}
+                {project.externalUrl && (
+                  <div className="pt-2">
+                    <a
+                      href={project.externalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-xs font-bold text-[#0F2C59] hover:text-[#B38E22] hover:underline"
+                    >
+                      <span>Visiter la page partenaire sur HonnoldFoundation.org</span>
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -358,6 +481,9 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
             Partenariats Stratégiques Reconnus
           </span>
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-16 grayscale hover:grayscale-0 transition-all opacity-80">
+            <div className="font-display font-bold text-lg sm:text-xl text-slate-700">
+              Honnold Foundation <span className="text-xs block text-slate-400 font-sans font-normal">(Énergie Solaire 2026)</span>
+            </div>
             <div className="font-display font-bold text-lg sm:text-xl text-slate-700">
               Compassion International <span className="text-xs block text-slate-400 font-sans font-normal">(CDEJ depuis 2019)</span>
             </div>

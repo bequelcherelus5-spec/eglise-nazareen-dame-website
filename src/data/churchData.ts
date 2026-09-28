@@ -80,6 +80,14 @@ export const CHURCH_TIMELINE: ChurchTimelineEvent[] = [
   },
   {
     year: 2026,
+    title: "Projet d'Énergie Solaire avec la Honnold Foundation",
+    subtitle: "Énergie propre pour l'éducation des élèves de Damé",
+    description: "Déploiement de 100 stations solaires portables pour 300+ écoliers et mise en place d'un Comité d'Énergie (50% de femmes) en partenariat avec la Honnold Foundation.",
+    iconName: "Sun",
+    badge: "Partenariat International"
+  },
+  {
+    year: 2026,
     title: "Projet d'Élevage Caprin avec la Fondation Digicel",
     subtitle: "Autonomisation économique durable",
     description: "Déploiement d'un programme communautaire d'élevage caprin en partenariat avec la Fondation Digicel pour soutenir le revenu des familles vulnérables de la 3ème Section Damé.",
@@ -293,6 +301,31 @@ export const EPND_COURSES: EpndCourse[] = [
 ];
 
 export const SOCIAL_PROJECTS: SocialProject[] = [
+  {
+    id: "energie-solaire-honnold",
+    title: "Projet d'Énergie Solaire Communautaire à Damé (Partenariat Honnold Foundation)",
+    partner: "Honnold Foundation",
+    year: "Septembre 2026",
+    status: "Nouveau",
+    description: "En partenariat avec la Honnold Foundation, l'Église du Nazaréen de Damé déploie un programme d'énergie solaire propre pour remplacer les lampes à kérosène toxiques et permettre aux élèves d'étudier en toute sécurité.",
+    impactMetrics: [
+      { label: "Stations solaires portables", value: "100" },
+      { label: "Élèves et écoliers impactés", value: "300+" },
+      { label: "Femmes au Comité d'Énergie", value: "50%" },
+      { label: "Partenaire International", value: "Honnold Foundation" }
+    ],
+    keyObjectives: [
+      "Remplacement des lampes à kérosène toxiques par 100 stations solaires portables",
+      "Permettre à plus de 300 élèves d'étudier le soir dans des conditions sûres et saines",
+      "Établir un Comité d'Énergie Communautaire composé à 50% de femmes locales",
+      "Fournir une énergie propre, renouvelable et durable à la communauté de Damé"
+    ],
+    externalUrl: "https://www.honnoldfoundation.org/partner/eglise-du-nazareen-de-dame",
+    pastorQuote: {
+      text: "Lorsque nos enfants peuvent étudier en toute sécurité la nuit sans la fumée toxique du kérosène, nous éclairons le chemin pour sortir de la pauvreté et nous construisons un avenir durable grâce à l'unité communautaire.",
+      author: "Pasteur Bequel CHERELUS, Leader du Projet"
+    }
+  },
   {
     id: "cdej",
     title: "Centre de Développement de l'Enfant et des Jeunes (CDEJ)",

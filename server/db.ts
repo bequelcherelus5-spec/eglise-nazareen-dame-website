@@ -85,6 +85,9 @@ export interface ChurchPublication {
   budget?: string; // ex: "$5,000 USD" ou "250,000 HTG MonCash"
   targetGoal?: string; // ex: "Approvisionner en eau potable 300 familles"
   projectStatus?: ProjectProgressStatus;
+  externalUrl?: string; // Lien externe officiel (ex: Honnold Foundation)
+  pastorQuote?: { text: string; author: string } | string;
+  impactMetrics?: { label: string; value: string }[];
 }
 
 export type EventStatus = 'Brouillon' | 'Publié' | 'Terminé' | 'Annulé';
@@ -336,6 +339,34 @@ function initDb() {
   // Initialize Publications File
   if (!fs.existsSync(PUBLICATIONS_FILE)) {
     const seedPublications: ChurchPublication[] = [
+      {
+        id: 'projet-honnold-solaire',
+        title: "Projet d'Énergie Solaire Communautaire à Damé (Partenariat Honnold Foundation)",
+        summary: "En partenariat avec la Honnold Foundation, l'Église du Nazaréen de Damé déploie un programme d'énergie solaire propre pour remplacer les lampes à kérosène toxiques et permettre aux élèves d'étudier en toute sécurité.",
+        content: "En partenariat avec la Honnold Foundation, l'Église du Nazaréen de Damé déploie un programme d'énergie solaire propre pour remplacer les lampes à kérosène toxiques et permettre aux élèves d'étudier en toute sécurité.\n\nCe partenariat d'envergure permet la distribution et l'installation de 100 stations solaires portables de haute qualité au bénéfice direct de plus de 300 écoliers et élèves de Damé. Il garantit un éclairage fiable, propre et sans danger pour leurs études nocturnes, tout en supprimant l'inhalation nocive de fumées de kérosène.\n\nLe projet s'appuie sur une gouvernance communautaire exemplaire avec la mise en place d'un Comité d'Énergie Communautaire composé à 50% de femmes, garantissant une appropriation pérenne et solidaire au sein de notre paroisse et de notre localité.",
+        image: '/images/cour_paysage.jpg',
+        category: 'Projets Sociaux',
+        author: 'Pasteur Bequel CHERELUS, Leader du Projet',
+        date: 'Septembre 2026',
+        status: 'Publiée',
+        publicationType: 'projet',
+        editorMode: 'visual',
+        hasCustomImage: true,
+        budget: 'Partenariat Honnold Foundation',
+        targetGoal: '100 stations solaires portables | 300+ élèves impactés | 50% de femmes dans le Comité d\'Énergie',
+        projectStatus: 'En cours',
+        externalUrl: 'https://www.honnoldfoundation.org/partner/eglise-du-nazareen-de-dame',
+        pastorQuote: {
+          text: "Lorsque nos enfants peuvent étudier en toute sécurité la nuit sans la fumée toxique du kérosène, nous éclairons le chemin pour sortir de la pauvreté et nous construisons un avenir durable grâce à l'unité communautaire.",
+          author: "Pasteur Bequel CHERELUS, Leader du Projet"
+        },
+        impactMetrics: [
+          { label: "Stations solaires portables", value: "100" },
+          { label: "Élèves impactés", value: "300+" },
+          { label: "Femmes au Comité d'Énergie", value: "50%" }
+        ],
+        createdAt: '2026-09-01T08:00:00.000Z'
+      },
       {
         id: 'pub-1',
         title: '47 Ans de Grâce Divine et de Mission à Damé (1979 - 2026)',

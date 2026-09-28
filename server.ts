@@ -360,6 +360,27 @@ app.post('/api/newsletter/subscribe', (req: Request, res: Response) => {
   }
 });
 
+// Public SEO & Crawler endpoints
+app.get('/robots.txt', (req: Request, res: Response) => {
+  const robotsPath = path.join(process.cwd(), 'public', 'robots.txt');
+  if (fs.existsSync(robotsPath)) {
+    res.type('text/plain; charset=utf-8');
+    res.sendFile(robotsPath);
+  } else {
+    res.type('text/plain; charset=utf-8').send("User-agent: *\nAllow: /\nSitemap: https://eglisedunazareendedame.org/sitemap.xml\n");
+  }
+});
+
+app.get('/sitemap.xml', (req: Request, res: Response) => {
+  const sitemapPath = path.join(process.cwd(), 'public', 'sitemap.xml');
+  if (fs.existsSync(sitemapPath)) {
+    res.type('application/xml; charset=utf-8');
+    res.sendFile(sitemapPath);
+  } else {
+    res.status(404).send('Sitemap not found');
+  }
+});
+
 // Public Publications List
 app.get('/api/publications', (req: Request, res: Response) => {
   try {
@@ -717,7 +738,10 @@ app.post('/api/publications', requireAdminAuth, (req: Request, res: Response) =>
       hasCustomImage,
       budget,
       targetGoal,
-      projectStatus
+      projectStatus,
+      externalUrl,
+      pastorQuote,
+      impactMetrics
     } = req.body;
 
     if (!title || !content) {
@@ -733,7 +757,7 @@ app.post('/api/publications', requireAdminAuth, (req: Request, res: Response) =>
       content: String(content).trim(),
       summary: summary ? String(summary).trim() : String(content).slice(0, 160).replace(/<[^>]*>?/gm, '') + '...',
       image: image || '',
-      category: category || (cleanPublicationType === 'projet' ? 'Projet Communautaire' : 'Actualité de l\'Église'),
+      category: category || (cleanPublicationType === 'projet' ? 'Projets Sociaux' : 'Actualité de l\'Église'),
       author: author ? String(author).trim() : 'Secrétariat Paroissial',
       date: date || new Date().toISOString().split('T')[0],
       status: status === 'Brouillon' || status === 'En attente' || status === 'Archivée' ? status : 'Publiée',
@@ -742,7 +766,10 @@ app.post('/api/publications', requireAdminAuth, (req: Request, res: Response) =>
       hasCustomImage: Boolean(hasCustomImage || (image && !image.includes('facade'))),
       budget: cleanPublicationType === 'projet' && budget ? String(budget).trim() : undefined,
       targetGoal: cleanPublicationType === 'projet' && targetGoal ? String(targetGoal).trim() : undefined,
-      projectStatus: cleanPublicationType === 'projet' ? (projectStatus || 'En cours') : undefined
+      projectStatus: cleanPublicationType === 'projet' ? (projectStatus || 'En cours') : undefined,
+      externalUrl: externalUrl ? String(externalUrl).trim() : undefined,
+      pastorQuote: pastorQuote || undefined,
+      impactMetrics: Array.isArray(impactMetrics) ? impactMetrics : undefined
     });
 
     res.status(201).json({ 
