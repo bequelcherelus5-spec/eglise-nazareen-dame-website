@@ -1,6 +1,8 @@
-import React from 'react';
-import { PageTab } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { PageTab, ChurchPublication } from '../../types';
 import { CHURCH_INFO, CHURCH_TIMELINE, NEWS_ARTICLES, SOCIAL_PROJECTS } from '../../data/churchData';
+import { apiService } from '../../services/apiService';
+import { DEFAULT_CHURCH_IMAGE } from '../../utils/imageOptimizer';
 import { ChurchPhotoGallery } from '../ChurchPhotoGallery';
 import { CommunityEngagementCounter } from '../CommunityEngagementCounter';
 import { CHURCH_ASSETS } from '../../data/churchMedia';
@@ -38,6 +40,29 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onSelectArticle
 }) => {
   const onSelectTab = (tab: PageTab) => onNavigate(tab);
+  const [dynamicPubs, setDynamicPubs] = useState<ChurchPublication[]>([]);
+
+  useEffect(() => {
+    const fetchLatest = async () => {
+      try {
+        const pubs = await apiService.getPublications(false);
+        setDynamicPubs(pubs.slice(0, 3));
+      } catch (err) {
+        console.warn('Failed to load dynamic publications on HomeView:', err);
+      }
+    };
+    fetchLatest();
+
+    const handleUpdate = () => fetchLatest();
+    window.addEventListener('dame_publications_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    return () => {
+      window.removeEventListener('dame_publications_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
   const handleArticleClick = (articleId: string) => {
     if (onSelectArticle) {
       onSelectArticle(articleId);
@@ -369,45 +394,60 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {NEWS_ARTICLES.slice(0, 3).map((article) => (
-            <article
-              key={article.id}
-              onClick={() => handleArticleClick(article.id)}
-              className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
-            >
-              <div>
-                <div className="relative h-48 w-full overflow-hidden bg-slate-100">
-                  <img
-                    src={article.imageUrl}
-                    alt={article.title}
-                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    referrerPolicy="no-referrer"
-                  />
-                  <span className="absolute top-3 left-3 rounded-full bg-[#0F2C59] px-2.5 py-1 text-[10px] font-bold uppercase text-white shadow">
-                    {article.category}
+          {(dynamicPubs.length > 0 ? dynamicPubs : NEWS_ARTICLES.slice(0, 3)).map((item: any) => {
+            const isDyn = 'createdAt' in item || 'publicationType' in item;
+            const title = item.title;
+            const category = item.category || 'Actualité';
+            const date = item.date;
+            const author = item.author;
+            const summary = item.summary || item.content?.slice?.(0, 150) || '';
+            const img = (item.image && item.hasCustomImage !== false) 
+              ? item.image 
+              : item.imageUrl || DEFAULT_CHURCH_IMAGE;
+
+            return (
+              <article
+                key={item.id}
+                onClick={() => handleArticleClick(item.id)}
+                className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
+              >
+                <div>
+                  <div className="relative h-48 w-full overflow-hidden bg-slate-100">
+                    <img
+                      src={img}
+                      alt={title}
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = DEFAULT_CHURCH_IMAGE;
+                      }}
+                      referrerPolicy="no-referrer"
+                    />
+                    <span className="absolute top-3 left-3 rounded-full bg-[#0F2C59] px-2.5 py-1 text-[10px] font-bold uppercase text-white shadow">
+                      {category}
+                    </span>
+                  </div>
+                  <div className="p-5 space-y-2">
+                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                      <span>{date}</span>
+                      <span>•</span>
+                      <span>{author}</span>
+                    </div>
+                    <h3 className="text-sm font-bold font-display text-slate-900 group-hover:text-[#0F2C59] transition-colors line-clamp-2">
+                      {title}
+                    </h3>
+                    <p className="text-xs text-slate-600 line-clamp-2">
+                      {summary}
+                    </p>
+                  </div>
+                </div>
+                <div className="p-5 pt-0">
+                  <span className="text-xs font-bold text-[#0F2C59] group-hover:text-[#D4AF37] flex items-center gap-1">
+                    Lire l'article complet <ChevronRight className="h-3.5 w-3.5" />
                   </span>
                 </div>
-                <div className="p-5 space-y-2">
-                  <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                    <span>{article.date}</span>
-                    <span>•</span>
-                    <span>{article.author}</span>
-                  </div>
-                  <h3 className="text-sm font-bold font-display text-slate-900 group-hover:text-[#0F2C59] transition-colors line-clamp-2">
-                    {article.title}
-                  </h3>
-                  <p className="text-xs text-slate-600 line-clamp-2">
-                    {article.summary}
-                  </p>
-                </div>
-              </div>
-              <div className="p-5 pt-0">
-                <span className="text-xs font-bold text-[#0F2C59] group-hover:text-[#D4AF37] flex items-center gap-1">
-                  Lire l'article complet <ChevronRight className="h-3.5 w-3.5" />
-                </span>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       </section>
 

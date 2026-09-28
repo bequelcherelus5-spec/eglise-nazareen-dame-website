@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NEWS_ARTICLES, MEDIA_GALLERY } from '../../data/churchData';
-import { NewsArticle, MediaItem } from '../../types';
+import { NewsArticle, MediaItem, ChurchPublication } from '../../types';
+import { apiService } from '../../services/apiService';
+import { DEFAULT_CHURCH_IMAGE } from '../../utils/imageOptimizer';
 import { AdSenseUnit } from '../ads/AdSenseUnit';
 import { 
   Search, 
@@ -17,25 +19,119 @@ import {
   User, 
   ChevronRight,
   Share2,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react';
 
 interface NewsMediaViewProps {
   initialArticleId?: string | null;
 }
 
+export interface UnifiedArticle {
+  id: string;
+  title: string;
+  category: string;
+  date: string;
+  author: string;
+  readTime: string;
+  summary: string;
+  content: string | string[];
+  imageUrl: string;
+  editorMode?: 'visual' | 'html';
+  hasCustomImage?: boolean;
+}
+
 export const NewsMediaView: React.FC<NewsMediaViewProps> = ({ initialArticleId }) => {
   const [activeTab, setActiveTab] = useState<'articles' | 'medias'>('articles');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Toutes');
+  const [dynamicArticles, setDynamicArticles] = useState<UnifiedArticle[]>([]);
+  const [loadingDynamic, setLoadingDynamic] = useState<boolean>(true);
   
   // Article Modal State
-  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(() => {
+  const [selectedArticle, setSelectedArticle] = useState<UnifiedArticle | null>(() => {
     if (initialArticleId) {
-      return NEWS_ARTICLES.find(a => a.id === initialArticleId) || null;
+      const found = NEWS_ARTICLES.find(a => a.id === initialArticleId);
+      if (found) {
+        return {
+          id: found.id,
+          title: found.title,
+          category: found.category,
+          date: found.date,
+          author: found.author,
+          readTime: found.readTime,
+          summary: found.summary,
+          content: found.content,
+          imageUrl: found.imageUrl
+        };
+      }
     }
     return null;
   });
+
+  const loadDynamicArticles = async () => {
+    try {
+      const pubs = await apiService.getPublications(false);
+      // Filter out pure projects if they are in SocialProjectsView, or include articles & annonces
+      const nonProjectPubs = pubs.filter(p => p.publicationType !== 'projet');
+      const mapped: UnifiedArticle[] = nonProjectPubs.map(p => ({
+        id: p.id,
+        title: p.title,
+        category: p.category || 'Actualité de l\'Église',
+        date: p.date,
+        author: p.author || 'Secrétariat de l\'Église',
+        readTime: '3 min',
+        summary: p.summary,
+        content: p.content,
+        imageUrl: (p.image && p.hasCustomImage !== false) ? p.image : DEFAULT_CHURCH_IMAGE,
+        editorMode: p.editorMode,
+        hasCustomImage: p.hasCustomImage
+      }));
+      setDynamicArticles(mapped);
+
+      // If initialArticleId matches dynamic article
+      if (initialArticleId) {
+        const foundDyn = mapped.find(m => m.id === initialArticleId);
+        if (foundDyn) setSelectedArticle(foundDyn);
+      }
+    } catch (err) {
+      console.warn('[NewsMediaView] Erreur chargement publications dynamiques:', err);
+    } finally {
+      setLoadingDynamic(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDynamicArticles();
+
+    const handleUpdate = () => {
+      loadDynamicArticles();
+    };
+
+    window.addEventListener('dame_publications_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    return () => {
+      window.removeEventListener('dame_publications_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, [initialArticleId]);
+
+  // Combined all articles (dynamic publications first, then static articles without duplicates)
+  const allArticles: UnifiedArticle[] = [
+    ...dynamicArticles,
+    ...NEWS_ARTICLES.filter(na => !dynamicArticles.some(da => da.id === na.id)).map(na => ({
+      id: na.id,
+      title: na.title,
+      category: na.category,
+      date: na.date,
+      author: na.author,
+      readTime: na.readTime,
+      summary: na.summary,
+      content: na.content,
+      imageUrl: na.imageUrl
+    }))
+  ];
 
   // Media Player State
   const [activeMedia, setActiveMedia] = useState<MediaItem | null>(null);
@@ -43,7 +139,7 @@ export const NewsMediaView: React.FC<NewsMediaViewProps> = ({ initialArticleId }
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Filter articles
-  const filteredArticles = NEWS_ARTICLES.filter((article) => {
+  const filteredArticles = allArticles.filter((article) => {
     const matchesSearch = 
       article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       article.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -393,15 +489,32 @@ export const NewsMediaView: React.FC<NewsMediaViewProps> = ({ initialArticleId }
                   src={selectedArticle.imageUrl}
                   alt={selectedArticle.title}
                   className="w-full h-64 object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = DEFAULT_CHURCH_IMAGE;
+                  }}
                   referrerPolicy="no-referrer"
                 />
               </div>
 
-              <div className="space-y-4 text-sm text-slate-700 leading-relaxed">
-                {selectedArticle.content.map((paragraph, pIdx) => (
-                  <p key={pIdx}>{paragraph}</p>
-                ))}
-              </div>
+              {selectedArticle.editorMode === 'html' ? (
+                <div 
+                  className="prose prose-sm max-w-none text-slate-800 leading-relaxed"
+                  dangerouslySetInnerHTML={{ 
+                    __html: typeof selectedArticle.content === 'string' 
+                      ? selectedArticle.content 
+                      : selectedArticle.content.join('\n') 
+                  }}
+                />
+              ) : (
+                <div className="space-y-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                  {Array.isArray(selectedArticle.content) 
+                    ? selectedArticle.content.map((paragraph, pIdx) => (
+                        <p key={pIdx}>{paragraph}</p>
+                      ))
+                    : <p>{selectedArticle.content}</p>
+                  }
+                </div>
+              )}
 
               {/* Google AdSense Unit dans l'article de fond */}
               <AdSenseUnit slot="7382968203" format="auto" />

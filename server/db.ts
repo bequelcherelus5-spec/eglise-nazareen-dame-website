@@ -59,6 +59,9 @@ export interface NewsletterCampaign {
 }
 
 export type PublicationStatus = 'Brouillon' | 'En attente' | 'Publiée' | 'Archivée';
+export type PublicationKind = 'article' | 'annonce' | 'projet';
+export type EditorMode = 'visual' | 'html';
+export type ProjectProgressStatus = 'Planifié' | 'En cours' | 'Terminé';
 
 export interface ChurchPublication {
   id: string;
@@ -72,6 +75,16 @@ export interface ChurchPublication {
   status: PublicationStatus;
   createdAt: string;
   updatedAt?: string;
+  
+  // Nouveaux modes d'édition et types de publications
+  publicationType?: PublicationKind;
+  editorMode?: EditorMode;
+  hasCustomImage?: boolean;
+  
+  // Champs spécifiques aux Projets communautaires
+  budget?: string; // ex: "$5,000 USD" ou "250,000 HTG MonCash"
+  targetGoal?: string; // ex: "Approvisionner en eau potable 300 familles"
+  projectStatus?: ProjectProgressStatus;
 }
 
 export type EventStatus = 'Brouillon' | 'Publié' | 'Terminé' | 'Annulé';
@@ -107,6 +120,17 @@ export interface ChurchPodcast {
   createdAt: string;
 }
 
+export interface ChurchFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  order: number;
+  published: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 const DATA_DIR = path.join(process.cwd(), 'data');
 const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
 const SUBSCRIBERS_FILE = path.join(DATA_DIR, 'subscribers.json');
@@ -114,6 +138,7 @@ const CAMPAIGNS_FILE = path.join(DATA_DIR, 'campaigns.json');
 const PODCASTS_FILE = path.join(DATA_DIR, 'podcasts.json');
 const PUBLICATIONS_FILE = path.join(DATA_DIR, 'publications.json');
 const EVENTS_FILE = path.join(DATA_DIR, 'events.json');
+const FAQ_FILE = path.join(DATA_DIR, 'faq.json');
 
 // Ensure directory and files exist
 function initDb() {
@@ -417,6 +442,58 @@ function initDb() {
     ];
     fs.writeFileSync(EVENTS_FILE, JSON.stringify(seedEvents, null, 2), 'utf-8');
   }
+
+  // Initialize FAQ File
+  if (!fs.existsSync(FAQ_FILE)) {
+    const seedFaqs: ChurchFaqItem[] = [
+      {
+        id: 'faq-1',
+        question: 'Quels sont les horaires des cultes à l’Église du Nazaréen de Damé ?',
+        answer: 'Notre culte d’adoration dominical principal a lieu chaque dimanche matin de 08h00 à 12h00. Le mardi soir (17h00 - 19h00) est consacré à la prière et à l\'intercession, le mercredi soir (17h00 - 18h30) à l’étude biblique d\'édification, et le samedi après-midi (15h00) aux activités de la Jeunesse Nazaréenne Internationale (JNI).',
+        category: 'Cultes & Célébrations',
+        order: 1,
+        published: true,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'faq-2',
+        question: 'Comment obtenir un certificat de baptême ou une attestation ecclésiastique ?',
+        answer: 'Vous pouvez soumettre votre demande en ligne directement depuis notre page « Demande de Documents » ou via le formulaire de contact. Le secrétariat paroissial prépare le document officiel sous 48 à 72 heures avec le sceau de l\'église et la signature du Pasteur Bequel CHERELUS.',
+        category: 'Documents Administratifs',
+        order: 2,
+        published: true,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'faq-3',
+        question: 'Quelles sont les formations offertes à l’École Professionnelle EPND et comment s’inscrire ?',
+        answer: 'L’École Professionnelle Nazaréen de Damé (EPND) propose des formations diplômantes en Couture & Modélisme (9 mois), Maçonnerie Parasismique (10 mois), Musique & Solfège (6 mois) et Anglais Pratique (6 mois). Vous pouvez vous préinscrire en ligne via notre onglet « Éducation » ou au secrétariat avec une pièce d\'identité.',
+        category: 'École EPND',
+        order: 3,
+        published: true,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'faq-4',
+        question: 'Comment soutenir les projets sociaux et communautaires de la paroisse ?',
+        answer: 'Vous pouvez soutenir nos œuvres d\'amour (parrainage d\'enfants CDEJ, projet caprin solidaire, bourses d\'études pour les jeunes) via MonCash au (+509) 48596089, par virement bancaire ou via le bouton « Faire un don » accessible sur chaque page de notre site web.',
+        category: 'Dons & Projets',
+        order: 4,
+        published: true,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'faq-5',
+        question: 'Où se situe exactement l’église et comment s’y rendre ?',
+        answer: 'L’Église du Nazaréen de Damé est située sur la Rue Cimetière, 3ème Section Rurale Damé, dans la commune de Môle-Saint-Nicolas (Département du Bas Nord-Ouest, Haïti). Notre sanctuaire et le complexe de l\'école Nazareth sont situés au cœur de la localité.',
+        category: 'Général',
+        order: 5,
+        published: true,
+        createdAt: new Date().toISOString()
+      }
+    ];
+    fs.writeFileSync(FAQ_FILE, JSON.stringify(seedFaqs, null, 2), 'utf-8');
+  }
 }
 
 // Generate valid WAV audio tone for built-in sample sermons
@@ -711,12 +788,20 @@ export const dbSubscribers = {
 
 // Publications API
 export const dbPublications = {
-  getAll: (includeDrafts: boolean = true, category?: string, search?: string): ChurchPublication[] => {
+  getAll: (includeDrafts: boolean = true, category?: string, search?: string, type?: string): ChurchPublication[] => {
     let items = readJson<ChurchPublication[]>(PUBLICATIONS_FILE);
     if (!includeDrafts) {
       items = items.filter(p => p.status === 'Publiée');
     }
-    if (category && category !== 'Toutes') {
+    if (type && type !== 'All' && type !== 'all') {
+      items = items.filter(p => {
+        if (p.publicationType) return p.publicationType === type;
+        if (type === 'projet') return p.category.toLowerCase().includes('projet');
+        if (type === 'annonce') return p.category.toLowerCase().includes('annonce');
+        return true;
+      });
+    }
+    if (category && category !== 'Toutes' && category !== 'All') {
       items = items.filter(p => p.category === category);
     }
     if (search && search.trim()) {
@@ -725,7 +810,9 @@ export const dbPublications = {
         p.title.toLowerCase().includes(q) ||
         p.summary.toLowerCase().includes(q) ||
         p.content.toLowerCase().includes(q) ||
-        p.author.toLowerCase().includes(q)
+        p.author.toLowerCase().includes(q) ||
+        (p.budget && p.budget.toLowerCase().includes(q)) ||
+        (p.targetGoal && p.targetGoal.toLowerCase().includes(q))
       );
     }
     return items.sort((a, b) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime());
@@ -740,7 +827,7 @@ export const dbPublications = {
     const items = readJson<ChurchPublication[]>(PUBLICATIONS_FILE);
     const newPub: ChurchPublication = {
       ...pub,
-      id: `pub-${Date.now()}`,
+      id: `pub-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       createdAt: new Date().toISOString()
     };
     items.unshift(newPub);
@@ -879,3 +966,66 @@ export const dbPodcasts = {
     return true;
   }
 };
+
+// FAQ API
+export const dbFaq = {
+  getAll: (includeUnpublished: boolean = false, category?: string, search?: string): ChurchFaqItem[] => {
+    let items = readJson<ChurchFaqItem[]>(FAQ_FILE);
+    if (!includeUnpublished) {
+      items = items.filter(f => f.published);
+    }
+    if (category && category !== 'Toutes' && category !== 'All') {
+      items = items.filter(f => f.category === category);
+    }
+    if (search && search.trim()) {
+      const q = search.toLowerCase().trim();
+      items = items.filter(f => 
+        f.question.toLowerCase().includes(q) ||
+        f.answer.toLowerCase().includes(q) ||
+        f.category.toLowerCase().includes(q)
+      );
+    }
+    return items.sort((a, b) => (a.order || 999) - (b.order || 999));
+  },
+
+  getById: (id: string): ChurchFaqItem | undefined => {
+    const items = readJson<ChurchFaqItem[]>(FAQ_FILE);
+    return items.find(f => f.id === id);
+  },
+
+  create: (item: Omit<ChurchFaqItem, 'id' | 'createdAt'>): ChurchFaqItem => {
+    const items = readJson<ChurchFaqItem[]>(FAQ_FILE);
+    const newFaq: ChurchFaqItem = {
+      ...item,
+      id: `faq-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      order: item.order ?? (items.length + 1),
+      published: item.published !== false,
+      createdAt: new Date().toISOString()
+    };
+    items.push(newFaq);
+    writeJson(FAQ_FILE, items);
+    return newFaq;
+  },
+
+  update: (id: string, updates: Partial<ChurchFaqItem>): ChurchFaqItem | null => {
+    const items = readJson<ChurchFaqItem[]>(FAQ_FILE);
+    const idx = items.findIndex(f => f.id === id);
+    if (idx === -1) return null;
+    items[idx] = { 
+      ...items[idx], 
+      ...updates, 
+      updatedAt: new Date().toISOString() 
+    };
+    writeJson(FAQ_FILE, items);
+    return items[idx];
+  },
+
+  delete: (id: string): boolean => {
+    const items = readJson<ChurchFaqItem[]>(FAQ_FILE);
+    const filtered = items.filter(f => f.id !== id);
+    if (filtered.length === items.length) return false;
+    writeJson(FAQ_FILE, filtered);
+    return true;
+  }
+};
+

@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SOCIAL_PROJECTS } from '../../data/churchData';
+import { ChurchPublication } from '../../types';
+import { apiService } from '../../services/apiService';
+import { DEFAULT_CHURCH_IMAGE } from '../../utils/imageOptimizer';
 import { AdSenseUnit } from '../ads/AdSenseUnit';
 import { 
   HeartHandshake, 
@@ -9,7 +12,16 @@ import {
   TrendingUp, 
   Users, 
   Building2,
-  ArrowRight
+  ArrowRight,
+  DollarSign,
+  Target,
+  Calendar,
+  User,
+  Briefcase,
+  RefreshCw,
+  Clock,
+  Layers,
+  Code2
 } from 'lucide-react';
 
 interface SocialProjectsViewProps {
@@ -19,27 +31,244 @@ interface SocialProjectsViewProps {
 export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
   onOpenDonationModal
 }) => {
+  const [dynamicProjects, setDynamicProjects] = useState<ChurchPublication[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+
+  const fetchProjects = useCallback(async (isManualRefresh: boolean = false) => {
+    if (isManualRefresh) setRefreshing(true);
+    try {
+      // Récupérer les publications de type projet publiées
+      const pubs = await apiService.getProjects(false);
+      setDynamicProjects(pubs);
+    } catch (err) {
+      console.warn('[SocialProjectsView] Erreur lors du chargement des projets publiés:', err);
+    } finally {
+      setLoading(false);
+      if (isManualRefresh) setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProjects();
+
+    // Réactivité en temps réel : écouter les publications depuis le secrétariat
+    const handlePublicationUpdate = () => {
+      fetchProjects();
+    };
+
+    window.addEventListener('dame_publications_updated', handlePublicationUpdate);
+    window.addEventListener('storage', handlePublicationUpdate);
+
+    return () => {
+      window.removeEventListener('dame_publications_updated', handlePublicationUpdate);
+      window.removeEventListener('storage', handlePublicationUpdate);
+    };
+  }, [fetchProjects]);
+
   return (
     <div className="space-y-16 pb-16">
-      {/* Header */}
+      {/* 1. Header Hero */}
       <section className="bg-[#0F2C59] text-white py-14 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center max-w-3xl">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D4AF37]/20 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-3">
             <HeartHandshake className="h-3.5 w-3.5" />
-            Amour en Action & Développement
+            Amour en Action & Développement Paroissial
           </span>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold font-display">
-            Projets Sociaux & Impact Communautaire
+            Nos Projets & Impact Communautaire
           </h1>
           <p className="mt-3 text-sm sm:text-base text-slate-200 leading-relaxed">
-            Pour l'Église du Nazaréen de Damé, la foi sans les œuvres est vaine. Nous travaillons activement pour l'épanouissement des enfants démunis, des familles vulnérables et l'autonomie de notre terroir.
+            Pour l'Église du Nazaréen de Damé, la foi sans les œuvres est vaine (Jacques 2:17). Nous agissons au quotidien pour l'autonomie des familles vulnérables, l'éducation de nos enfants et le rayonnement solidaire de notre localité.
           </p>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => fetchProjects(true)}
+              disabled={refreshing}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-xs transition-colors cursor-pointer border border-white/20"
+              title="Actualiser la liste des projets"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 text-[#D4AF37] ${refreshing ? 'animate-spin' : ''}`} />
+              <span>{refreshing ? 'Mise à jour...' : 'Actualiser les projets'}</span>
+            </button>
+
+            <button
+              onClick={onOpenDonationModal}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#D4AF37] px-5 py-2 text-xs font-bold text-[#0F2C59] hover:bg-[#B38E22] transition-all shadow-sm"
+            >
+              <Heart className="h-3.5 w-3.5 fill-current" />
+              <span>Faire un don pour un projet</span>
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* Projects List */}
+      {/* 2. Section des Projets Publiés depuis le Secrétariat */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg">
+                <Briefcase className="w-4 h-4" />
+              </span>
+              <span className="text-xs uppercase tracking-widest text-emerald-800 font-bold">
+                Initiatives Paroissiales & Récentes
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold font-display text-slate-900 mt-1">
+              Projets Communautaires en Direct
+            </h2>
+          </div>
+          <span className="text-xs text-slate-500 font-medium">
+            {dynamicProjects.length} initiative(s) publiée(s) par le Secrétariat
+          </span>
+        </div>
+
+        {loading ? (
+          <div className="py-12 flex flex-col items-center justify-center text-slate-400">
+            <RefreshCw className="h-8 w-8 animate-spin text-[#0F2C59] mb-2" />
+            <p className="text-xs">Chargement des projets communautaires...</p>
+          </div>
+        ) : dynamicProjects.length > 0 ? (
+          <div className="space-y-8">
+            {dynamicProjects.map((pub) => {
+              const statusBadgeClass = 
+                pub.projectStatus === 'Terminé' 
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
+                  : pub.projectStatus === 'En cours' 
+                    ? 'bg-blue-100 text-blue-900 border-blue-300' 
+                    : 'bg-amber-100 text-amber-900 border-amber-300';
+
+              const hasImage = Boolean(pub.hasCustomImage !== false && pub.image && pub.image.trim() !== '');
+
+              return (
+                <article
+                  key={pub.id}
+                  className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col lg:flex-row"
+                >
+                  {/* Image optionnelle du projet */}
+                  {hasImage && (
+                    <div className="lg:w-1/3 min-h-[220px] lg:min-h-full bg-slate-100 relative overflow-hidden shrink-0">
+                      <img
+                        src={pub.image}
+                        alt={pub.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = DEFAULT_CHURCH_IMAGE;
+                        }}
+                      />
+                      <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#0F2C59] text-white shadow-xs">
+                          {pub.category || 'Projet Paroissial'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contenu du projet */}
+                  <div className={`p-6 sm:p-8 flex-1 flex flex-col justify-between space-y-6 ${!hasImage ? 'lg:w-full' : ''}`}>
+                    <div className="space-y-4">
+                      {/* Métadonnées & Badges statut/budget */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {pub.projectStatus && (
+                          <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase border ${statusBadgeClass}`}>
+                            {pub.projectStatus}
+                          </span>
+                        )}
+
+                        {pub.budget && (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-semibold">
+                            <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Budget : <strong>{pub.budget}</strong></span>
+                          </span>
+                        )}
+
+                        {pub.targetGoal && (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full text-xs font-semibold">
+                            <Target className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Objectif : <strong>{pub.targetGoal}</strong></span>
+                          </span>
+                        )}
+
+                        <span className="text-xs text-slate-400 flex items-center gap-1 ml-auto">
+                          <Calendar className="w-3.5 h-3.5" />
+                          {pub.date}
+                        </span>
+                      </div>
+
+                      {/* Titre */}
+                      <h3 className="text-2xl sm:text-3xl font-bold font-display text-slate-900 leading-snug">
+                        {pub.title}
+                      </h3>
+
+                      {/* Résumé d'accroche */}
+                      {pub.summary && (
+                        <p className="text-sm font-medium text-slate-700 italic border-l-3 border-[#D4AF37] pl-3 py-0.5">
+                          {pub.summary}
+                        </p>
+                      )}
+
+                      {/* Rendu du contenu : mode HTML personnalisé ou mode texte formatté */}
+                      {pub.editorMode === 'html' ? (
+                        <div 
+                          className="prose prose-sm max-w-none text-slate-700 leading-relaxed pt-2"
+                          dangerouslySetInnerHTML={{ __html: pub.content }}
+                        />
+                      ) : (
+                        <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap pt-2">
+                          {pub.content}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer de la carte */}
+                    <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <User className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span>Porté par : <strong className="text-slate-700">{pub.author || 'Secrétariat de l\'Église'}</strong></span>
+                      </div>
+
+                      <button
+                        onClick={onOpenDonationModal}
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#0F2C59] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#1A3D73] transition-colors self-start sm:self-auto shrink-0 shadow-sm cursor-pointer"
+                      >
+                        <Heart className="h-3.5 w-3.5 text-[#D4AF37]" />
+                        <span>Soutenir ce projet</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-8 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
+            <Briefcase className="h-8 w-8 text-slate-400 mx-auto" />
+            <p className="text-sm font-semibold text-slate-700">Aucun projet dynamique n'est encore publié.</p>
+            <p className="text-xs text-slate-500">Les nouveaux projets publiés depuis l'Espace Secrétariat s'afficheront directement ici.</p>
+          </div>
+        )}
+      </section>
+
+      {/* 3. Projets Historiques & Partenariats Stratégiques */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        {SOCIAL_PROJECTS.map((project, idx) => {
+        <div className="border-b border-slate-200 pb-4">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 bg-blue-100 text-[#0F2C59] rounded-lg">
+              <Building2 className="w-4 h-4" />
+            </span>
+            <span className="text-xs uppercase tracking-widest text-[#0F2C59] font-bold">
+              Programmes Sociaux Fondateurs
+            </span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold font-display text-slate-900 mt-1">
+            Partenariats Humanitaires & Développement
+          </h2>
+        </div>
+
+        {SOCIAL_PROJECTS.map((project) => {
           const isDigicel = project.id === 'elevage-caprin';
           return (
             <div
@@ -74,7 +303,7 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
 
                   <button
                     onClick={onOpenDonationModal}
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#0F2C59] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#1A3D73] transition-colors self-start sm:self-auto shrink-0 shadow-sm"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#0F2C59] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#1A3D73] transition-colors self-start sm:self-auto shrink-0 shadow-sm cursor-pointer"
                   >
                     Soutenir ce projet
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -122,7 +351,7 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
         <AdSenseUnit slot="7382968203" format="auto" />
       </section>
 
-      {/* Callout Partners */}
+      {/* 4. Callout Partners */}
       <section className="bg-slate-50 py-12 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
           <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">

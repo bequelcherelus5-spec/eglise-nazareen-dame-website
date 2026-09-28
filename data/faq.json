@@ -1,0 +1,56 @@
+[
+  {
+    "id": "faq-1",
+    "question": "Quels sont les horaires des cultes et réunions de prière à l'Église du Nazaréen de Damé ?",
+    "answer": "Notre assemblée se réunit régulièrement tout au long de la semaine :\n• Dimanche 08h30 - 11h30 : Culte d'Adoration & Sainte Cène (ou action de grâce).\n• Dimanche 16h00 : Rassemblement de la Jeunesse Nazaréenne Internationale (JNI).\n• Mercredi 17h00 - 18h30 : Étude Biblique & Enseignement doctrinal approfondi.\n• Vendredi 16h30 - 18h00 : Réunion de Prière & Intercession pour les malades et la communauté.\nToutes nos célébrations sont ouvertes à tous sans distinction.",
+    "category": "Cultes & Célébrations",
+    "order": 1,
+    "published": true,
+    "createdAt": "2026-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "faq-2",
+    "question": "Comment obtenir un certificat officiel (baptême, mariage ou recommandation paroissiale) ?",
+    "answer": "Le secrétariat général de l'Église délivre les attestations et certificats officiels :\n1. Remplissez le formulaire en ligne dans l'onglet 'Demande de Documents' ou adressez-vous directement au bureau du secrétariat.\n2. Indiquez la date approximative ou l'année de l'événement (baptême, union, bénédiction).\n3. Le délai de traitement habituel est de 48h à 72h ouvrées après vérification des registres paroissiaux signés par le Pasteur titulaire.",
+    "category": "Documents Administratifs",
+    "order": 2,
+    "published": true,
+    "createdAt": "2026-01-16T11:00:00.000Z"
+  },
+  {
+    "id": "faq-3",
+    "question": "Quelles sont les formations offertes par l'École Professionnelle du Nazaréen de Damé (EPND) et comment s'inscrire ?",
+    "answer": "L'École Professionnelle EPND offre des formations techniques certifiantes accessibles aux jeunes et adultes de Damé et des environs :\n• Couture & Modélisme (cursus de 9 mois)\n• Maçonnerie & Construction Parasismique (10 mois)\n• Musique, Solfège & Pratique Instrumentale (6 mois)\n• Anglais Pratique & Professionnel (6 mois)\nLes inscriptions sont ouvertes à chaque rentrée via le bouton 'Admission EPND' sur le site ou au secrétariat avec deux photos d'identité et une pièce d'identification valide.",
+    "category": "École EPND",
+    "order": 3,
+    "published": true,
+    "createdAt": "2026-01-17T12:00:00.000Z"
+  },
+  {
+    "id": "faq-4",
+    "question": "Comment soutenir financièrement les projets sociaux de l'Église (MonCash, Zelle, Virement) ?",
+    "answer": "Vous pouvez soutenir les œuvres d'amour et de développement de l'assemblée en toute transparence :\n• MonCash (Haïti) : +509 37 43 00 24 / +509 46 88 12 10\n• Zelle / Transfert Diaspora : Disponible via le secrétariat ou en ouvrant le modal 'Faire un Don' sur notre site.\n• Enveloppes de dîmes & offrandes : Directement lors des cultes ou au trésorier de l'Église.\nChaque contribution est affectée directement aux projets ciblés (cantine, forage d'eau, toiture de l'école, soutien aux veuves).",
+    "category": "Dons & Projets",
+    "order": 4,
+    "published": true,
+    "createdAt": "2026-01-18T14:00:00.000Z"
+  },
+  {
+    "id": "faq-5",
+    "question": "Où est exactement située l'Église à Damé et comment s'y rendre ?",
+    "answer": "L'Église du Nazaréen de Damé est située au cœur de la 3ème Section Communale de Damé, Commune de Jérémie, Département de la Grand'Anse, Haïti (Code postal HT7210).\nElle est facilement accessible depuis l'axe principal reliant Jérémie à la localité de Damé. Des repères visuels clairs indiquent le complexe paroissial et le bâtiment de l'école.",
+    "category": "Général",
+    "order": 5,
+    "published": true,
+    "createdAt": "2026-01-19T09:00:00.000Z"
+  },
+  {
+    "id": "faq-6",
+    "question": "Comment demander une visite pastorale ou confier un sujet de prière urgent ?",
+    "answer": "Le Pasteur et le collège des diacres sont dévoués au soin des âmes :\n• Vous pouvez soumettre une requête confidentielle 24h/24 via l'onglet 'Requête de Prière' de notre site.\n• Pour les visites aux malades à domicile ou à l'hôpital, contactez directement la ligne d'urgence pastorale au +509 37 43 00 24 ou par WhatsApp.\nLes requêtes transmises comme 'confidentielles' ne sont partagées qu'avec l'équipe pastorale d'intercession.",
+    "category": "Vie Spirituelle & Prière",
+    "order": 6,
+    "published": true,
+    "createdAt": "2026-01-20T16:00:00.000Z"
+  }
+]

@@ -4,25 +4,24 @@
  */
 
 export const PRESET_CHURCH_IMAGES = [
-  { label: 'Façade du Sanctuaire', url: '/images/dame_facade.jpg' },
+  { label: 'Bâtiment & Façade de l\'École', url: '/images/ecole_facade.jpg' },
   { label: 'Cour & Environs de l\'Église', url: '/images/cour_paysage.jpg' },
-  { label: 'Bâtiment de l\'École', url: '/images/ecole_facade.jpg' },
   { label: 'Culte d\'Adoration & Action de Grâce', url: '/images/culte_action_de_grace.jpg' },
   { label: 'Conseil Paroissial & Comité', url: '/images/comite.jpg' },
   { label: 'Sceau Officiel de l\'Église', url: '/images/logo.png' },
 ];
 
-export const DEFAULT_CHURCH_IMAGE = '/images/dame_facade.jpg';
+export const DEFAULT_CHURCH_IMAGE = '/images/ecole_facade.jpg';
 
 /**
  * Compresse une image (Fichier ou chaîne Base64) via HTML Canvas côté client
- * Réduit la résolution (max 1000px) et compresse en JPEG 75% pour éviter les erreurs de quota
+ * Réduit la résolution (max 800px) et compresse en JPEG 65-70% pour éviter tout dépassement de quota (QuotaExceededError)
  */
 export async function compressImage(
   source: File | string,
-  maxWidth: number = 1000,
-  maxHeight: number = 800,
-  quality: number = 0.75
+  maxWidth: number = 800,
+  maxHeight: number = 600,
+  quality: number = 0.65
 ): Promise<string> {
   // Si c'est une URL statique locale ou web (pas du base64 lourd), la renvoyer directement
   if (typeof source === 'string') {
@@ -47,8 +46,8 @@ export async function compressImage(
           // Calculer les nouvelles dimensions proportionnelles
           if (width > maxWidth || height > maxHeight) {
             const ratio = Math.min(maxWidth / width, maxHeight / height);
-            width = Math.round(width * ratio);
-            height = Math.round(height * ratio);
+            width = Math.max(1, Math.round(width * ratio));
+            height = Math.max(1, Math.round(height * ratio));
           }
 
           const canvas = document.createElement('canvas');
@@ -58,7 +57,7 @@ export async function compressImage(
           const ctx = canvas.getContext('2d');
           if (!ctx) {
             // Fallback si canvas non disponible
-            resolve(typeof source === 'string' && source.length < 200000 ? source : DEFAULT_CHURCH_IMAGE);
+            resolve(typeof source === 'string' && source.length < 100000 ? source : DEFAULT_CHURCH_IMAGE);
             return;
           }
 
@@ -70,15 +69,15 @@ export async function compressImage(
           // Exporter en JPEG optimisé
           let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
 
-          // Si le résultat dépasse encore 250 Ko, recompresser plus agressivement
-          if (compressedDataUrl.length > 250000) {
-            compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          // Si le résultat dépasse encore 80 Ko, recompresser plus agressivement
+          if (compressedDataUrl.length > 80000) {
+            compressedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
           }
 
           resolve(compressedDataUrl);
         } catch (canvasErr) {
           console.warn('[ImageOptimizer] Échec de la compression Canvas:', canvasErr);
-          resolve(typeof source === 'string' ? source : DEFAULT_CHURCH_IMAGE);
+          resolve(typeof source === 'string' && source.length < 100000 ? source : DEFAULT_CHURCH_IMAGE);
         }
       };
 
@@ -104,4 +103,19 @@ export async function compressImage(
       resolve(DEFAULT_CHURCH_IMAGE);
     }
   });
+}
+
+/**
+ * Assainit une chaîne d'image pour le stockage persistant
+ * Si l'image est trop volumineuse pour le localStorage, elle est allégée ou remplacée
+ */
+export function sanitizeImageForStorage(image?: string): string {
+  if (!image) return '';
+  if (image.startsWith('/') || image.startsWith('http://') || image.startsWith('https://')) {
+    return image;
+  }
+  if (image.startsWith('data:image') && image.length > 100000) {
+    return DEFAULT_CHURCH_IMAGE;
+  }
+  return image;
 }

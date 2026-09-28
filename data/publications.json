@@ -1,0 +1,50 @@
+[
+  {
+    "id": "pub-1",
+    "title": "47 Ans de Grâce Divine et de Mission à Damé (1979 - 2026)",
+    "summary": "Retour sur les origines bénies de l’Église du Nazaréen de Damé, fondée par Saurel ALCINÉ et fortifiée par le Pasteur Bequel CHERELUS.",
+    "content": "Depuis sa fondation le 23 décembre 1979 sous la direction de Saurel ALCINÉ, l’Église du Nazaréen de Damé s’est affirmée comme un phare spirituel, éducatif et communautaire incontournable au sein du District Bas Nord-Ouest d’Haïti. Aujourd’hui guidée avec ferveur par le Pasteur Bequel CHERELUS, elle poursuit sa vocation : sanctification, éducation chrétienne et compassion pour chaque famille de notre communauté.",
+    "image": "/images/ecole_facade.jpg",
+    "category": "Histoire & Foi",
+    "author": "Pasteur Bequel CHERELUS",
+    "date": "2026-03-01",
+    "status": "Publiée",
+    "publicationType": "article",
+    "editorMode": "visual",
+    "hasCustomImage": true,
+    "createdAt": "2026-09-20T21:56:18.570Z"
+  },
+  {
+    "id": "pub-2",
+    "title": "Rentrée Académique de l’École Nazareth & de l’EPND",
+    "summary": "Nos élèves de la 1ère à la 9ème Année Fondamentale et nos étudiants des filières techniques reprennent leurs activités.",
+    "content": "L’éducation est au cœur de l’engagement chrétien de notre paroisse. L’École Nazareth accueille plus de 450 élèves avec un encadrement rigoureux et des cours bibliques, tandis que l’École Professionnelle EPND forme les jeunes en couture, électricité, informatique et maçonnerie.",
+    "image": "/images/culte_action_de_grace.jpg",
+    "category": "Éducation",
+    "author": "Direction Pédagogique",
+    "date": "2026-02-15",
+    "status": "Publiée",
+    "publicationType": "article",
+    "editorMode": "visual",
+    "hasCustomImage": true,
+    "createdAt": "2026-09-07T21:56:18.570Z"
+  },
+  {
+    "id": "pub-3",
+    "title": "Projet Caprin & Soutien Agricole aux Familles Vulnérables",
+    "summary": "Bilan de notre initiative de solidarité et d’autonomisation économique en faveur des cultivateurs et veuves de Damé.",
+    "content": "Grâce au partenariat avec nos bienfaiteurs et la mobilisation du Conseil Paroissial, plus de 60 familles ont reçu des têtes de bétail pour renforcer la sécurité alimentaire de notre localité.",
+    "image": "/images/cour_paysage.jpg",
+    "category": "Projet Communautaire",
+    "author": "Comité de Secours et de Développement",
+    "date": "2026-01-28",
+    "status": "Publiée",
+    "publicationType": "projet",
+    "editorMode": "visual",
+    "hasCustomImage": true,
+    "budget": "$3,500 USD (MonCash HTG)",
+    "targetGoal": "Bénéficier à 60 familles vulnérables et cultivateurs de Damé",
+    "projectStatus": "En cours",
+    "createdAt": "2026-08-18T21:56:18.570Z"
+  }
+]

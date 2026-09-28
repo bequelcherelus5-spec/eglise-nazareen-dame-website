@@ -7,7 +7,8 @@ import {
   AdminStats,
   ChurchPodcast,
   ChurchPublication,
-  ChurchEvent
+  ChurchEvent,
+  ChurchFaqItem
 } from '../types';
 import { 
   safeLocalStorageSet, 
@@ -24,6 +25,7 @@ const LOCAL_BACKUP_PUBLICATIONS = 'dame_local_publications_backup';
 const LOCAL_BACKUP_EVENTS = 'dame_local_events_backup';
 const LOCAL_BACKUP_SUBSCRIBERS = 'dame_local_subscribers_backup';
 const LOCAL_BACKUP_PODCASTS = 'dame_local_podcasts_backup';
+const LOCAL_BACKUP_FAQ = 'dame_local_faq_backup';
 
 export interface AdminUser {
   username: string;
@@ -574,12 +576,13 @@ export const apiService = {
   // ----------------------------------------------------
   // PUBLICATIONS MANAGEMENT (PUBLIC & ADMIN)
   // ----------------------------------------------------
-  async getPublications(includeDrafts: boolean = false, category?: string, search?: string): Promise<ChurchPublication[]> {
+  async getPublications(includeDrafts: boolean = false, category?: string, search?: string, type?: string): Promise<ChurchPublication[]> {
     const token = this.getToken();
     const query = new URLSearchParams();
     if (includeDrafts) query.set('includeDrafts', 'true');
     if (category) query.set('category', category);
     if (search) query.set('search', search);
+    if (type) query.set('type', type);
 
     let serverPubs: ChurchPublication[] = [];
     try {
@@ -611,13 +614,31 @@ export const apiService = {
       if (!includeDrafts) {
         allPubs = allPubs.filter(p => p.status === 'Publiée');
       }
+      if (type && type !== 'All' && type !== 'all') {
+        allPubs = allPubs.filter(p => {
+          if (p.publicationType) return p.publicationType === type;
+          if (type === 'projet') return p.category.toLowerCase().includes('projet');
+          if (type === 'annonce') return p.category.toLowerCase().includes('annonce');
+          return true;
+        });
+      }
 
-      // Conserver le backup synchronisé
-      safeLocalStorageSet(LOCAL_BACKUP_PUBLICATIONS, JSON.stringify(allPubs.slice(0, 100)));
+      // Conserver le backup synchronisé en nettoyant les images volumineuses pour éviter QuotaExceededError
+      const safeBackup = allPubs.slice(0, 100).map(p => {
+        if (p.image && p.image.startsWith('data:image') && p.image.length > 80000) {
+          return { ...p, image: '/images/ecole_facade.jpg' };
+        }
+        return p;
+      });
+      safeLocalStorageSet(LOCAL_BACKUP_PUBLICATIONS, JSON.stringify(safeBackup));
       return allPubs;
     } catch {
       return serverPubs;
     }
+  },
+
+  async getProjects(includeDrafts: boolean = false): Promise<ChurchPublication[]> {
+    return this.getPublications(includeDrafts, undefined, undefined, 'projet');
   },
 
   async createPublication(pub: {
@@ -629,12 +650,33 @@ export const apiService = {
     author?: string;
     date?: string;
     status?: 'Brouillon' | 'En attente' | 'Publiée' | 'Archivée';
+    publicationType?: 'article' | 'annonce' | 'projet';
+    editorMode?: 'visual' | 'html';
+    hasCustomImage?: boolean;
+    budget?: string;
+    targetGoal?: string;
+    projectStatus?: 'Planifié' | 'En cours' | 'Terminé';
   }): Promise<ChurchPublication | null> {
     const token = this.getToken();
-    const cleanImage = (pub.image && pub.image.length < 300000) ? pub.image : '/images/dame_facade.jpg';
+    
+    // Gérer l'image : si pas d'image personnalisée, garder chaîne vide au lieu d'écraser
+    let cleanImage = '';
+    if (pub.hasCustomImage && pub.image) {
+      cleanImage = (pub.image.length < 350000) ? pub.image : '/images/ecole_facade.jpg';
+    }
+
+    const cleanPublicationType = pub.publicationType || 
+      (String(pub.category || '').toLowerCase().includes('projet') ? 'projet' : String(pub.category || '').toLowerCase().includes('annonce') ? 'annonce' : 'article');
+
     const payload = {
       ...pub,
-      image: cleanImage
+      image: cleanImage,
+      publicationType: cleanPublicationType,
+      editorMode: pub.editorMode || 'visual',
+      hasCustomImage: Boolean(pub.hasCustomImage && cleanImage),
+      budget: cleanPublicationType === 'projet' ? pub.budget : undefined,
+      targetGoal: cleanPublicationType === 'projet' ? pub.targetGoal : undefined,
+      projectStatus: cleanPublicationType === 'projet' ? (pub.projectStatus || 'En cours') : undefined
     };
 
     try {
@@ -649,15 +691,27 @@ export const apiService = {
 
       if (response.ok) {
         const data = await response.json();
-        const created = data.publication;
+        const created: ChurchPublication = data.publication;
         // Sauvegarder dans le cache local
         try {
           const backup: ChurchPublication[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_PUBLICATIONS) || '[]');
           backup.unshift(created);
-          safeLocalStorageSet(LOCAL_BACKUP_PUBLICATIONS, JSON.stringify(backup.slice(0, 100)));
+          const safeBackup = backup.slice(0, 100).map(p => {
+            if (p.image && p.image.startsWith('data:image') && p.image.length > 80000) {
+              return { ...p, image: '/images/ecole_facade.jpg' };
+            }
+            return p;
+          });
+          safeLocalStorageSet(LOCAL_BACKUP_PUBLICATIONS, JSON.stringify(safeBackup));
         } catch {
           // ignore
         }
+
+        // Déclencher un événement global pour mise à jour immédiate des vues publiques
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('dame_publications_updated', { detail: { publication: created } }));
+        }
+
         return created;
       }
     } catch (netErr) {
@@ -669,21 +723,37 @@ export const apiService = {
       id: `pub-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       title: pub.title.trim(),
       content: pub.content.trim(),
-      summary: (pub.summary && pub.summary.trim()) || pub.content.slice(0, 160) + '...',
+      summary: (pub.summary && pub.summary.trim()) || pub.content.slice(0, 160).replace(/<[^>]*>?/gm, '') + '...',
       image: cleanImage,
-      category: pub.category || 'Actualité de l\'Église',
+      category: pub.category || (cleanPublicationType === 'projet' ? 'Projet Communautaire' : 'Actualité de l\'Église'),
       author: pub.author?.trim() || 'Secrétariat de l\'Église',
       date: pub.date || new Date().toISOString().split('T')[0],
       status: pub.status || 'Publiée',
+      publicationType: cleanPublicationType,
+      editorMode: pub.editorMode || 'visual',
+      hasCustomImage: Boolean(pub.hasCustomImage && cleanImage),
+      budget: cleanPublicationType === 'projet' ? pub.budget : undefined,
+      targetGoal: cleanPublicationType === 'projet' ? pub.targetGoal : undefined,
+      projectStatus: cleanPublicationType === 'projet' ? (pub.projectStatus || 'En cours') : undefined,
       createdAt: new Date().toISOString()
     };
 
     try {
       const backup: ChurchPublication[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_PUBLICATIONS) || '[]');
       backup.unshift(fallbackPub);
-      safeLocalStorageSet(LOCAL_BACKUP_PUBLICATIONS, JSON.stringify(backup.slice(0, 100)));
+      const safeBackup = backup.slice(0, 100).map(p => {
+        if (p.image && p.image.startsWith('data:image') && p.image.length > 80000) {
+          return { ...p, image: '/images/ecole_facade.jpg' };
+        }
+        return p;
+      });
+      safeLocalStorageSet(LOCAL_BACKUP_PUBLICATIONS, JSON.stringify(safeBackup));
     } catch (saveErr) {
       console.error('[Publications] Erreur stockage local fallback:', saveErr);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('dame_publications_updated', { detail: { publication: fallbackPub } }));
     }
 
     return fallbackPub;
@@ -708,11 +778,22 @@ export const apiService = {
           const idx = backup.findIndex(p => p.id === id);
           if (idx !== -1) {
             backup[idx] = updated;
-            safeLocalStorageSet(LOCAL_BACKUP_PUBLICATIONS, JSON.stringify(backup));
+            const safeBackup = backup.map(p => {
+              if (p.image && p.image.startsWith('data:image') && p.image.length > 80000) {
+                return { ...p, image: '/images/ecole_facade.jpg' };
+              }
+              return p;
+            });
+            safeLocalStorageSet(LOCAL_BACKUP_PUBLICATIONS, JSON.stringify(safeBackup));
           }
         } catch {
           // ignore
         }
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('dame_publications_updated', { detail: { publication: updated } }));
+        }
+
         return updated;
       }
     } catch (err: any) {
@@ -725,7 +806,18 @@ export const apiService = {
       const idx = backup.findIndex(p => p.id === id);
       if (idx !== -1) {
         backup[idx] = { ...backup[idx], ...updates };
-        safeLocalStorageSet(LOCAL_BACKUP_PUBLICATIONS, JSON.stringify(backup));
+        const safeBackup = backup.map(p => {
+          if (p.image && p.image.startsWith('data:image') && p.image.length > 80000) {
+            return { ...p, image: '/images/ecole_facade.jpg' };
+          }
+          return p;
+        });
+        safeLocalStorageSet(LOCAL_BACKUP_PUBLICATIONS, JSON.stringify(safeBackup));
+        
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('dame_publications_updated', { detail: { publication: backup[idx] } }));
+        }
+
         return backup[idx];
       }
     } catch {
@@ -752,6 +844,11 @@ export const apiService = {
       const backup: ChurchPublication[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_PUBLICATIONS) || '[]');
       const filtered = backup.filter(p => p.id !== id);
       safeLocalStorageSet(LOCAL_BACKUP_PUBLICATIONS, JSON.stringify(filtered));
+      
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('dame_publications_updated', { detail: { deletedId: id } }));
+      }
+
       return true;
     } catch {
       return true;
@@ -1108,5 +1205,224 @@ export const apiService = {
     }
 
     return success;
+  },
+
+  // ----------------------------------------------------
+  // FAQ MANAGEMENT (PUBLIC & ADMIN)
+  // ----------------------------------------------------
+  async getFaqs(includeUnpublished: boolean = false, category?: string, search?: string): Promise<ChurchFaqItem[]> {
+    const token = this.getToken();
+    const query = new URLSearchParams();
+    if (includeUnpublished) query.set('includeUnpublished', 'true');
+    if (category) query.set('category', category);
+    if (search) query.set('search', search);
+
+    let serverFaqs: ChurchFaqItem[] = [];
+    try {
+      const headers: Record<string, string> = {};
+      if (token && includeUnpublished) headers['Authorization'] = `Bearer ${token}`;
+
+      const response = await fetch(`/api/faq?${query.toString()}`, { headers });
+      if (response.ok) {
+        const data = await response.json();
+        serverFaqs = data.faqs || [];
+      }
+    } catch (err) {
+      console.warn('[FAQ] Serveur distant non accessible, bascule sur sauvegarde locale:', err);
+    }
+
+    try {
+      let backup: ChurchFaqItem[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_FAQ) || '[]');
+      const mergedMap = new Map<string, ChurchFaqItem>();
+      serverFaqs.forEach(f => mergedMap.set(f.id, f));
+      backup.forEach(f => {
+        if (!mergedMap.has(f.id)) {
+          mergedMap.set(f.id, f);
+        }
+      });
+
+      let allFaqs = Array.from(mergedMap.values());
+      if (!includeUnpublished) {
+        allFaqs = allFaqs.filter(f => f.published);
+      }
+      if (category && category !== 'Toutes' && category !== 'All') {
+        allFaqs = allFaqs.filter(f => f.category === category);
+      }
+      if (search && search.trim()) {
+        const q = search.toLowerCase().trim();
+        allFaqs = allFaqs.filter(f => 
+          f.question.toLowerCase().includes(q) ||
+          f.answer.toLowerCase().includes(q) ||
+          f.category.toLowerCase().includes(q)
+        );
+      }
+
+      allFaqs.sort((a, b) => (a.order || 999) - (b.order || 999));
+      safeLocalStorageSet(LOCAL_BACKUP_FAQ, JSON.stringify(allFaqs));
+      return allFaqs;
+    } catch {
+      return serverFaqs;
+    }
+  },
+
+  async createFaq(faq: {
+    question: string;
+    answer: string;
+    category?: string;
+    order?: number;
+    published?: boolean;
+  }): Promise<ChurchFaqItem | null> {
+    const token = this.getToken();
+    const payload = {
+      question: faq.question.trim(),
+      answer: faq.answer.trim(),
+      category: faq.category?.trim() || 'Général',
+      order: typeof faq.order === 'number' ? faq.order : 1,
+      published: faq.published !== false
+    };
+
+    try {
+      const response = await fetch('/api/faq', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const created: ChurchFaqItem = data.faq;
+        try {
+          const backup: ChurchFaqItem[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_FAQ) || '[]');
+          backup.push(created);
+          backup.sort((a, b) => (a.order || 999) - (b.order || 999));
+          safeLocalStorageSet(LOCAL_BACKUP_FAQ, JSON.stringify(backup));
+        } catch {
+          // ignore
+        }
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('dame_faq_updated', { detail: { faq: created } }));
+        }
+
+        return created;
+      }
+    } catch (err) {
+      console.warn('[FAQ] Échec de l’enregistrement distant, création locale:', err);
+    }
+
+    // Fallback local
+    const fallbackFaq: ChurchFaqItem = {
+      id: `faq-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      question: payload.question,
+      answer: payload.answer,
+      category: payload.category,
+      order: payload.order,
+      published: payload.published,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      const backup: ChurchFaqItem[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_FAQ) || '[]');
+      backup.push(fallbackFaq);
+      backup.sort((a, b) => (a.order || 999) - (b.order || 999));
+      safeLocalStorageSet(LOCAL_BACKUP_FAQ, JSON.stringify(backup));
+    } catch (saveErr) {
+      console.error('[FAQ] Erreur stockage local fallback:', saveErr);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('dame_faq_updated', { detail: { faq: fallbackFaq } }));
+    }
+
+    return fallbackFaq;
+  },
+
+  async updateFaq(id: string, updates: Partial<ChurchFaqItem>): Promise<ChurchFaqItem | null> {
+    const token = this.getToken();
+    try {
+      const response = await fetch(`/api/faq/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(updates)
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const updated = data.faq;
+        try {
+          const backup: ChurchFaqItem[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_FAQ) || '[]');
+          const idx = backup.findIndex(f => f.id === id);
+          if (idx !== -1) {
+            backup[idx] = updated;
+            backup.sort((a, b) => (a.order || 999) - (b.order || 999));
+            safeLocalStorageSet(LOCAL_BACKUP_FAQ, JSON.stringify(backup));
+          }
+        } catch {
+          // ignore
+        }
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('dame_faq_updated', { detail: { faq: updated } }));
+        }
+
+        return updated;
+      }
+    } catch (err) {
+      console.warn('[FAQ] Erreur mise à jour distante, application locale:', err);
+    }
+
+    // Fallback local
+    try {
+      const backup: ChurchFaqItem[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_FAQ) || '[]');
+      const idx = backup.findIndex(f => f.id === id);
+      if (idx !== -1) {
+        backup[idx] = { ...backup[idx], ...updates, updatedAt: new Date().toISOString() };
+        backup.sort((a, b) => (a.order || 999) - (b.order || 999));
+        safeLocalStorageSet(LOCAL_BACKUP_FAQ, JSON.stringify(backup));
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('dame_faq_updated', { detail: { faq: backup[idx] } }));
+        }
+
+        return backup[idx];
+      }
+    } catch {
+      // ignore
+    }
+
+    return null;
+  },
+
+  async deleteFaq(id: string): Promise<boolean> {
+    const token = this.getToken();
+    try {
+      await fetch(`/api/faq/${id}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+    } catch (err) {
+      console.warn('[FAQ] Erreur suppression distante, suppression locale:', err);
+    }
+
+    try {
+      const backup: ChurchFaqItem[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_FAQ) || '[]');
+      const filtered = backup.filter(f => f.id !== id);
+      safeLocalStorageSet(LOCAL_BACKUP_FAQ, JSON.stringify(filtered));
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('dame_faq_updated', { detail: { deletedId: id } }));
+      }
+
+      return true;
+    } catch {
+      return true;
+    }
   }
 };

@@ -57,12 +57,14 @@ import {
   RotateCcw,
   BookOpen,
   Globe,
-  ScrollText
+  ScrollText,
+  HelpCircle
 } from 'lucide-react';
 import { PublicationsManager } from './PublicationsManager';
 import { EventsManager } from './EventsManager';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { LetterGeneratorView } from './LetterGeneratorView';
+import { FaqManager } from './FaqManager';
 import { 
   validateAudioFile, 
   compressAudioFile, 
@@ -83,6 +85,7 @@ type DashboardTab =
   | 'newsletter' 
   | 'events'
   | 'publications'
+  | 'faq'
   | 'podcasts'
   | 'letter-generator'
   | 'analytics'
@@ -115,6 +118,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [podcasts, setPodcasts] = useState<ChurchPodcast[]>([]);
   const [publicationsCount, setPublicationsCount] = useState<number>(0);
   const [eventsCount, setEventsCount] = useState<number>(0);
+  const [faqsCount, setFaqsCount] = useState<number>(0);
   const [subscriberSearch, setSubscriberSearch] = useState<string>('');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -167,14 +171,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Load all dashboard data
   const loadData = async () => {
     try {
-      const [subs, nls, cmps, pods, st, pubs, evts] = await Promise.all([
+      const [subs, nls, cmps, pods, st, pubs, evts, faqsList] = await Promise.all([
         apiService.getSubmissions(),
         apiService.getNewsletterSubscribers(),
         apiService.getNewsletterCampaigns(),
         apiService.getPodcasts(),
         apiService.getAdminStats(),
         apiService.getPublications(true),
-        apiService.getEvents(true)
+        apiService.getEvents(true),
+        apiService.getFaqs(true)
       ]);
       setSubmissions(subs);
       setSubscribers(nls);
@@ -183,6 +188,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setStats(st);
       setPublicationsCount(pubs.length);
       setEventsCount(evts.length);
+      setFaqsCount(faqsList.length);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
     } finally {
@@ -746,6 +752,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
 
             <button
+              onClick={() => { setActiveTab('faq'); }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'faq'
+                  ? 'bg-[#D4AF37] text-slate-950 font-bold shadow-sm'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <HelpCircle className="h-4 w-4" />
+                <span>FAQ & Questions Fréquentes</span>
+              </div>
+              <span className="text-[10px] opacity-70 font-mono">
+                {faqsCount}
+              </span>
+            </button>
+
+            <button
               onClick={() => { setActiveTab('newsletter'); setCategoryFilter('Newsletter Subscribers'); }}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                 activeTab === 'newsletter'
@@ -875,6 +898,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {activeTab === 'publications' && "Gestion des Publications & Actualités"}
                 {activeTab === 'newsletter' && "Système d'Abonnements & Newsletter"}
                 {activeTab === 'podcasts' && "Gestion des Podcasts & Messages Audio"}
+                {activeTab === 'faq' && "Gestion de la Foire Aux Questions (FAQ)"}
+                {activeTab === 'letter-generator' && "Générateur de Lettres & Documents Officiels"}
+                {activeTab === 'analytics' && "Audience & Analyse des Visites"}
                 {activeTab === 'security' && "Paramètres de Sécurité & Code d'Accès"}
               </h2>
               {refreshing && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
@@ -2098,12 +2124,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             />
           )}
 
-          {/* 10. GENERATEUR DE LETTRES & DOCUMENTS ECCLÉSIASTIQUES (IA GEMINI) */}
+          {/* 10. FAQ & QUESTIONS FREQUENTES MANAGER TAB */}
+          {activeTab === 'faq' && (
+            <FaqManager 
+              onFaqChanged={loadData}
+            />
+          )}
+
+          {/* 11. GENERATEUR DE LETTRES & DOCUMENTS ECCLÉSIASTIQUES (IA GEMINI) */}
           {activeTab === 'letter-generator' && (
             <LetterGeneratorView />
           )}
 
-          {/* 11. AUDIENCE, ANALYTICS & VISITEURS EN DIRECT */}
+          {/* 12. AUDIENCE, ANALYTICS & VISITEURS EN DIRECT */}
           {activeTab === 'analytics' && (
             <AnalyticsDashboard />
           )}

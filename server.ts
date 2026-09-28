@@ -11,6 +11,7 @@ import {
   dbPodcasts, 
   dbPublications, 
   dbEvents, 
+  dbFaq,
   SubmissionCategory, 
   SubmissionStatus 
 } from './server/db';
@@ -364,8 +365,9 @@ app.get('/api/publications', (req: Request, res: Response) => {
   try {
     const includeDrafts = req.query.includeDrafts === 'true';
     const category = req.query.category ? String(req.query.category) : undefined;
+    const type = req.query.type ? String(req.query.type) : undefined;
     const search = req.query.search ? String(req.query.search) : undefined;
-    const publications = dbPublications.getAll(includeDrafts, category, search);
+    const publications = dbPublications.getAll(includeDrafts, category, search, type);
     res.json({ success: true, count: publications.length, publications });
   } catch (err) {
     console.error('Error fetching publications:', err);
@@ -395,6 +397,20 @@ app.get('/api/podcasts', (req: Request, res: Response) => {
   } catch (err) {
     console.error('Error fetching podcasts:', err);
     res.status(500).json({ success: false, error: 'Erreur lors de la récupération des podcasts.' });
+  }
+});
+
+// Public FAQ List
+app.get('/api/faq', (req: Request, res: Response) => {
+  try {
+    const includeUnpublished = req.query.includeUnpublished === 'true';
+    const category = req.query.category ? String(req.query.category) : undefined;
+    const search = req.query.search ? String(req.query.search) : undefined;
+    const faqs = dbFaq.getAll(includeUnpublished, category, search);
+    res.json({ success: true, count: faqs.length, faqs });
+  } catch (err) {
+    console.error('Error fetching FAQ:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la récupération de la FAQ.' });
   }
 });
 
@@ -687,21 +703,46 @@ app.delete('/api/podcasts/:id', requireAdminAuth, (req: Request, res: Response) 
 
 app.post('/api/publications', requireAdminAuth, (req: Request, res: Response) => {
   try {
-    const { title, content, summary, image, category, author, date, status } = req.body;
+    const { 
+      title, 
+      content, 
+      summary, 
+      image, 
+      category, 
+      author, 
+      date, 
+      status,
+      publicationType,
+      editorMode,
+      hasCustomImage,
+      budget,
+      targetGoal,
+      projectStatus
+    } = req.body;
+
     if (!title || !content) {
       res.status(400).json({ success: false, error: 'Le titre et le contenu sont obligatoires.' });
       return;
     }
 
+    const cleanPublicationType = publicationType || 
+      (String(category || '').toLowerCase().includes('projet') ? 'projet' : String(category || '').toLowerCase().includes('annonce') ? 'annonce' : 'article');
+
     const newPub = dbPublications.create({
       title: String(title).trim(),
       content: String(content).trim(),
-      summary: summary ? String(summary).trim() : String(content).slice(0, 160) + '...',
-      image: image || '/images/dame_facade.jpg',
-      category: category || 'Général',
-      author: author || 'Secrétariat Paroissial',
+      summary: summary ? String(summary).trim() : String(content).slice(0, 160).replace(/<[^>]*>?/gm, '') + '...',
+      image: image || '',
+      category: category || (cleanPublicationType === 'projet' ? 'Projet Communautaire' : 'Actualité de l\'Église'),
+      author: author ? String(author).trim() : 'Secrétariat Paroissial',
       date: date || new Date().toISOString().split('T')[0],
-      status: status === 'Brouillon' || status === 'En attente' || status === 'Archivée' ? status : 'Publiée'
+      status: status === 'Brouillon' || status === 'En attente' || status === 'Archivée' ? status : 'Publiée',
+      publicationType: cleanPublicationType,
+      editorMode: editorMode === 'html' ? 'html' : 'visual',
+      hasCustomImage: Boolean(hasCustomImage || (image && !image.includes('facade'))),
+      budget: cleanPublicationType === 'projet' && budget ? String(budget).trim() : undefined,
+      targetGoal: cleanPublicationType === 'projet' && targetGoal ? String(targetGoal).trim() : undefined,
+      projectStatus: cleanPublicationType === 'projet' ? (projectStatus || 'En cours') : undefined
     });
 
     res.status(201).json({ 
@@ -743,6 +784,59 @@ app.delete('/api/publications/:id', requireAdminAuth, (req: Request, res: Respon
     res.json({ success: true, message: 'Publication supprimée avec succès.' });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Erreur lors de la suppression de la publication.' });
+  }
+});
+
+// ----------------------------------------------------
+// ADMIN FAQ CRUD
+// ----------------------------------------------------
+
+app.post('/api/faq', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { question, answer, category, order, published } = req.body;
+    if (!question || !answer) {
+      res.status(400).json({ success: false, error: 'La question et la réponse sont obligatoires.' });
+      return;
+    }
+    const newFaq = dbFaq.create({
+      question: String(question).trim(),
+      answer: String(answer).trim(),
+      category: category ? String(category).trim() : 'Général',
+      order: typeof order === 'number' ? order : 1,
+      published: published !== false
+    });
+    res.status(201).json({ success: true, faq: newFaq, message: 'Question fréquente enregistrée avec succès.' });
+  } catch (err) {
+    console.error('Error creating FAQ item:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de l’enregistrement de la question fréquente.' });
+  }
+});
+
+app.patch('/api/faq/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const updated = dbFaq.update(req.params.id, req.body);
+    if (!updated) {
+      res.status(404).json({ success: false, error: 'Question fréquente introuvable.' });
+      return;
+    }
+    res.json({ success: true, faq: updated, message: 'Question fréquente mise à jour avec succès.' });
+  } catch (err) {
+    console.error('Error updating FAQ item:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la modification de la FAQ.' });
+  }
+});
+
+app.delete('/api/faq/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const ok = dbFaq.delete(req.params.id);
+    if (!ok) {
+      res.status(404).json({ success: false, error: 'Question fréquente introuvable.' });
+      return;
+    }
+    res.json({ success: true, message: 'Question fréquente supprimée avec succès.' });
+  } catch (err) {
+    console.error('Error deleting FAQ item:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la suppression de la FAQ.' });
   }
 });
 

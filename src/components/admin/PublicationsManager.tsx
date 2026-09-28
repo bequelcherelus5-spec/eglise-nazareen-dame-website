@@ -94,11 +94,11 @@ export const PublicationsManager: React.FC<PublicationsManagerProps> = ({ onPubl
 
     setImageCompressing(true);
     try {
-      const compressed = await compressImage(file, 900, 700, 0.75);
-      setFormData(prev => ({ ...prev, image: compressed }));
+      const compressed = await compressImage(file, 800, 600, 0.65);
+      setFormData(prev => ({ ...prev, image: compressed, hasImage: true }));
     } catch (err) {
       console.warn('Erreur compression image publication, fallback par défaut:', err);
-      setFormData(prev => ({ ...prev, image: DEFAULT_CHURCH_IMAGE }));
+      setFormData(prev => ({ ...prev, image: DEFAULT_CHURCH_IMAGE, hasImage: true }));
     } finally {
       setImageCompressing(false);
     }
@@ -177,8 +177,8 @@ export const PublicationsManager: React.FC<PublicationsManagerProps> = ({ onPubl
 
     try {
       let finalImage = formData.hasImage ? (formData.image || DEFAULT_CHURCH_IMAGE) : '';
-      if (finalImage.startsWith('data:image') && finalImage.length > 250000) {
-        finalImage = await compressImage(finalImage, 900, 700, 0.7);
+      if (finalImage.startsWith('data:image')) {
+        finalImage = await compressImage(finalImage, 800, 600, 0.65);
       }
 
       const payload: Partial<ChurchPublication> = {

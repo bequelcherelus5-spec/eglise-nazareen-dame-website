@@ -6,6 +6,7 @@ import { OfficialPhoto } from '../OfficialPhoto';
 import { ChurchLeafletMap } from '../ChurchLeafletMap';
 import { apiService } from '../../services/apiService';
 import { SubmissionCategory } from '../../types';
+import { FaqAccordion } from '../FaqAccordion';
 import { 
   MapPin, 
   Phone, 
@@ -101,6 +102,14 @@ export const ContactView: React.FC = () => {
       epndCourse: 'couture',
       prayerCategory: 'Santé & Guérison'
     });
+  };
+
+  const handleScrollToForm = () => {
+    setRequestType('general');
+    const el = document.getElementById('contact-form');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
@@ -229,7 +238,7 @@ export const ContactView: React.FC = () => {
 
           {/* Right Column (Formulaire multi-usage dynamique) */}
           <div className="lg:col-span-7">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10 shadow-sm space-y-6">
+            <div id="contact-form" className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10 shadow-sm space-y-6 scroll-mt-24">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-[#0F2C59]">
                   Formulaire Multi-Usage Dynamique
@@ -398,6 +407,11 @@ export const ContactView: React.FC = () => {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Dynamic FAQ Accordion Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-200/80 pt-16">
+        <FaqAccordion onAskQuestion={handleScrollToForm} />
       </section>
 
       {/* Lightbox Modal */}
