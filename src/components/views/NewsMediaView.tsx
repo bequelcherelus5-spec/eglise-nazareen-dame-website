@@ -108,10 +108,12 @@ export const NewsMediaView: React.FC<NewsMediaViewProps> = ({ initialArticleId }
       loadDynamicArticles();
     };
 
+    window.addEventListener('end_sec_updated', handleUpdate);
     window.addEventListener('dame_publications_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
 
     return () => {
+      window.removeEventListener('end_sec_updated', handleUpdate);
       window.removeEventListener('dame_publications_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };

@@ -1,11 +1,44 @@
 {
   "entities": {
     "SiteStat": {
-      "collection": "site_stats",
-      "fields": {
+      "title": "SiteStat",
+      "description": "Statistiques de visites et d'engagement du site",
+      "type": "object",
+      "properties": {
         "count": { "type": "number", "description": "Nombre total de visites enregistrées" },
-        "updatedAt": { "type": "string", "description": "Horodatage de la dernière visite enregistrée" }
-      }
+        "lastVisitAt": { "type": "string", "maxLength": 64, "description": "Date ISO de la dernière visite" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Horodatage de la dernière visite enregistrée" }
+      },
+      "required": ["count"]
+    },
+    "BibleChampion": {
+      "title": "BibleChampion",
+      "description": "Score d'un participant au Tableau des Champions Bibliques",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 80, "description": "Nom ou prénom du joueur" },
+        "score": { "type": "number", "description": "Score obtenu" },
+        "accuracy": { "type": "number", "description": "Pourcentage de précision" },
+        "gameType": { "type": "string", "maxLength": 40, "description": "Type de jeu biblique" },
+        "gameLabel": { "type": "string", "maxLength": 80, "description": "Libellé du jeu" },
+        "audience": { "type": "string", "maxLength": 40, "description": "Catégorie de public" },
+        "audienceLabel": { "type": "string", "maxLength": 80, "description": "Libellé de la catégorie" },
+        "titleBadge": { "type": "string", "maxLength": 80, "description": "Titre honorifique" },
+        "date": { "type": "string", "maxLength": 40, "description": "Date d'obtention" },
+        "createdAt": { "type": "string", "maxLength": 64, "description": "Horodatage ISO de création" }
+      },
+      "required": ["name", "score"]
+    }
+  },
+  "firestore": {
+    "/site_stats/{statId}": {
+      "schema": "SiteStat",
+      "description": "Statistiques globales de fréquentation du site"
+    },
+    "/bible_champions/{champId}": {
+      "schema": "BibleChampion",
+      "description": "Classement des champions des jeux bibliques"
     }
   }
 }
+

@@ -17,6 +17,17 @@ import {
   deleteAudioFromIndexedDB, 
   sanitizePodcastForStorage 
 } from './audioStorageService';
+import {
+  Project as SecProject,
+  EventItem as SecEventItem,
+  Sermon as SecSermon,
+  Announcement as SecAnnouncement,
+  seedProjects,
+  seedEvents,
+  seedSermons,
+  seedAnnouncements,
+  localAudioUrls
+} from '../components/admin/secretariatCore';
 
 const TOKEN_KEY = 'dame_admin_auth_token';
 const USER_KEY = 'dame_admin_user_info';
@@ -630,9 +641,80 @@ export const apiService = {
     try {
       let backup: ChurchPublication[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_PUBLICATIONS) || '[]');
       
-      // Fusionner les publications serveur et locales (priorité aux identifiants locaux récents)
+      // Synchronisation directe avec l'Espace Secrétariat (end_sec_projects & end_sec_announcements)
+      let secProjects: SecProject[] = [];
+      try {
+        const rawSecProj = localStorage.getItem('end_sec_projects');
+        secProjects = rawSecProj ? JSON.parse(rawSecProj) : seedProjects();
+      } catch {
+        secProjects = seedProjects();
+      }
+
+      let secAnnouncements: SecAnnouncement[] = [];
+      try {
+        const rawSecAnn = localStorage.getItem('end_sec_announcements');
+        secAnnouncements = rawSecAnn ? JSON.parse(rawSecAnn) : seedAnnouncements();
+      } catch {
+        secAnnouncements = seedAnnouncements();
+      }
+
+      const mappedSecProjects: ChurchPublication[] = secProjects
+        .filter(p => !p.archived)
+        .map(p => {
+          const isHonnold = p.id === HONNOLD_SOLAR_PROJECT.id || p.partner === 'Honnold';
+          const mappedStatus: 'Planifié' | 'En cours' | 'Terminé' =
+            p.status === 'En attente' ? 'Planifié' : p.status;
+          const metricsStr = p.metrics && p.metrics.length > 0
+            ? p.metrics.map(m => `${m.value} ${m.label}`).join(' | ')
+            : undefined;
+          return {
+            ...(isHonnold ? HONNOLD_SOLAR_PROJECT : {}),
+            id: p.id,
+            title: p.title,
+            summary: p.description || (isHonnold ? HONNOLD_SOLAR_PROJECT.summary : ''),
+            content: isHonnold && p.description === HONNOLD_SOLAR_PROJECT.summary
+              ? HONNOLD_SOLAR_PROJECT.content
+              : (p.description || ''),
+            image: isHonnold ? '/images/cour_paysage.jpg' : '/images/ecole_facade.jpg',
+            category: 'Projets Sociaux',
+            author: p.leader || 'Pasteur Bequel CHERELUS',
+            date: isHonnold ? 'Septembre 2026' : new Date().toISOString().split('T')[0],
+            status: 'Publiée',
+            publicationType: 'projet',
+            editorMode: 'visual',
+            hasCustomImage: isHonnold,
+            budget: p.partner ? `Partenaire : ${p.partner} (${p.category})` : p.category,
+            targetGoal: metricsStr,
+            projectStatus: mappedStatus,
+            externalUrl: p.url || (isHonnold ? HONNOLD_SOLAR_PROJECT.externalUrl : undefined),
+            impactMetrics: p.metrics && p.metrics.length > 0 ? p.metrics : undefined,
+            createdAt: new Date().toISOString()
+          } as ChurchPublication;
+        });
+
+      const mappedSecAnnouncements: ChurchPublication[] = secAnnouncements.map(a => ({
+        id: a.id,
+        title: a.title,
+        summary: a.content,
+        content: a.content,
+        image: '',
+        category: a.priority === 'Importante' ? 'Annonce Importante' : 'Annonces',
+        author: 'Secrétariat de l\'Église',
+        date: a.date,
+        status: a.published ? 'Publiée' : 'Brouillon',
+        publicationType: 'annonce',
+        editorMode: 'visual',
+        hasCustomImage: false,
+        createdAt: a.date
+      }));
+
+      // Fusionner les publications du Secrétariat, serveur et locales (priorité au Secrétariat en temps réel)
       const mergedMap = new Map<string, ChurchPublication>();
-      serverPubs.forEach(p => mergedMap.set(p.id, p));
+      mappedSecProjects.forEach(p => mergedMap.set(p.id, p));
+      mappedSecAnnouncements.forEach(a => mergedMap.set(a.id, a));
+      serverPubs.forEach(p => {
+        if (!mergedMap.has(p.id)) mergedMap.set(p.id, p);
+      });
       backup.forEach(p => {
         if (!mergedMap.has(p.id)) {
           mergedMap.set(p.id, p);
@@ -926,8 +1008,35 @@ export const apiService = {
 
     try {
       let backup: ChurchEvent[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_EVENTS) || '[]');
+      let secEvents: SecEventItem[] = [];
+      try {
+        const rawSecEvents = localStorage.getItem('end_sec_events');
+        secEvents = rawSecEvents ? JSON.parse(rawSecEvents) : seedEvents();
+      } catch {
+        secEvents = seedEvents();
+      }
+
+      const mappedSecEvents: ChurchEvent[] = secEvents.map(e => ({
+        id: e.id,
+        title: e.title,
+        description: e.description || `${e.kind} à ${e.location || "l'Église du Nazaréen de Damé"}`,
+        image: '/images/dame_facade.jpg',
+        date: e.date,
+        startTime: e.time || '09:00',
+        endTime: '',
+        location: e.location || 'Église du Nazaréen de Damé',
+        organizer: 'Pasteur Bequel CHERELUS',
+        category: e.kind || 'Culte',
+        status: e.published ? 'Publié' : 'Brouillon',
+        highlight: e.kind === 'Convention',
+        createdAt: e.date
+      }));
+
       const mergedMap = new Map<string, ChurchEvent>();
-      serverEvents.forEach(e => mergedMap.set(e.id, e));
+      mappedSecEvents.forEach(e => mergedMap.set(e.id, e));
+      serverEvents.forEach(e => {
+        if (!mergedMap.has(e.id)) mergedMap.set(e.id, e);
+      });
       backup.forEach(e => {
         if (!mergedMap.has(e.id)) {
           mergedMap.set(e.id, e);
@@ -1132,7 +1241,31 @@ export const apiService = {
       })
     );
 
-    return resolvedPodcasts;
+    // Merge sermons from Espace Secrétariat (end_sec_sermons)
+    try {
+      const rawSermons = localStorage.getItem('end_sec_sermons');
+      const secSermons: SecSermon[] = rawSermons ? JSON.parse(rawSermons) : seedSermons();
+      const mappedSermons: ChurchPodcast[] = secSermons.map(s => ({
+        id: s.id,
+        title: s.title,
+        preacher: s.speaker || 'Pasteur Bequel CHERELUS',
+        date: s.date,
+        category: 'Prédication',
+        description: s.passage ? `Passage biblique : ${s.passage}` : 'Message édifiant proclamé à l\'Église du Nazaréen de Damé.',
+        audioUrl: localAudioUrls[s.id] || s.audioUrl || '',
+        duration: '30:00',
+        coverImage: '/images/pasteur_bequel.jpg',
+        createdAt: s.date
+      }));
+      const mergedPodMap = new Map<string, ChurchPodcast>();
+      mappedSermons.forEach(p => mergedPodMap.set(p.id, p));
+      resolvedPodcasts.forEach(p => {
+        if (!mergedPodMap.has(p.id)) mergedPodMap.set(p.id, p);
+      });
+      return Array.from(mergedPodMap.values());
+    } catch {
+      return resolvedPodcasts;
+    }
   },
 
   async createPodcast(podcast: {

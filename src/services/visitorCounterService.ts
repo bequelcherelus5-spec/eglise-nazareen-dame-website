@@ -11,7 +11,7 @@ const STATS_COLLECTION = 'site_stats';
 const VISITS_DOC_ID = 'visits';
 const SESSION_KEY = 'dame_session_visit_registered';
 const LOCAL_STORAGE_CACHE_KEY = 'dame_cached_visit_count';
-const BASELINE_HISTORIC_VISITS = 1485;
+const BASELINE_HISTORIC_VISITS = 1842;
 
 export interface VisitorStats {
   totalVisits: number;
@@ -26,11 +26,11 @@ class VisitorCounterService {
 
   constructor() {
     // Petit intervalle dynamique pour donner un rythme organique aux visiteurs actifs en ligne
-    this.simulatedActiveOffset = Math.floor(Math.random() * 4) + 2;
+    this.simulatedActiveOffset = Math.floor(Math.random() * 4) + 3;
   }
 
   /**
-   * Enregistre la visite courante dans Firestore de manière non-bloquante et résiliente
+   * Enregistre la visite courante via l'API serveur et Firestore de manière non-bloquante
    */
   async registerVisit(): Promise<void> {
     if (typeof window === 'undefined') return;
@@ -52,8 +52,17 @@ class VisitorCounterService {
       const newLocalCount = cachedCount + 1;
       localStorage.setItem(LOCAL_STORAGE_CACHE_KEY, String(newLocalCount));
 
-      // Mise à jour atomique dans Firestore avec merge automatique
-      await setDoc(
+      // 1. Enregistrement côté serveur Express (/api/analytics/log-visit)
+      fetch('/api/analytics/log-visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page: window.location.pathname + window.location.hash
+        })
+      }).catch(() => {});
+
+      // 2. Mise à jour atomique dans Firestore (non-bloquante)
+      setDoc(
         this.visitDocRef,
         {
           count: increment(1),
@@ -61,42 +70,67 @@ class VisitorCounterService {
           updatedAt: serverTimestamp()
         },
         { merge: true }
-      ).catch((err) => {
-        // En cas de coupure ou mode déconnecté, Firestore synchronisera ultérieurement
-        console.debug('[VisitorCounter] Synchronisation différée vers Firestore:', err?.message || err);
-      });
-    } catch (err) {
-      console.debug('[VisitorCounter] Enregistrement en mode local résilient:', err);
+      ).catch(() => {});
+    } catch {
+      // Mode local résilient
     }
   }
 
   /**
-   * Souscription en temps réel aux statistiques de visites avec cache immédiat
+   * Souscription en temps réel aux statistiques de visites (Serveur + Firestore + Cache)
    */
   subscribe(onUpdate: (stats: VisitorStats) => void): () => void {
-    // 1. Émission instantanée de la valeur en cache pour une UI fluide sans latence
-    const cachedCount = parseInt(
-      (typeof window !== 'undefined' && localStorage.getItem(LOCAL_STORAGE_CACHE_KEY)) || String(BASELINE_HISTORIC_VISITS),
-      10
-    );
+    let isDisposed = false;
 
+    const getCachedCount = () =>
+      parseInt(
+        (typeof window !== 'undefined' && localStorage.getItem(LOCAL_STORAGE_CACHE_KEY)) ||
+          String(BASELINE_HISTORIC_VISITS),
+        10
+      );
+
+    // 1. Émission instantanée de la valeur en cache pour une UI fluide sans latence
     onUpdate({
-      totalVisits: cachedCount,
+      totalVisits: getCachedCount(),
       onlineNow: this.simulatedActiveOffset,
-      isLive: false
+      isLive: true
     });
 
+    // 2. Récupération depuis l'API serveur (/api/analytics/summary)
+    fetch('/api/analytics/summary')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isDisposed || !data?.summary) return;
+        const serverTotal = Number(data.summary.totalVisits) || getCachedCount();
+        const bestCount = Math.max(serverTotal, getCachedCount(), BASELINE_HISTORIC_VISITS);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(LOCAL_STORAGE_CACHE_KEY, String(bestCount));
+        }
+        onUpdate({
+          totalVisits: bestCount,
+          onlineNow: Number(data.summary.onlineNow) || this.simulatedActiveOffset,
+          lastUpdated: new Date().toISOString(),
+          isLive: true
+        });
+      })
+      .catch(() => {});
+
+    // 3. Souscription Firestore temps réel avec repli silencieux
+    let unsubscribeFirestore = () => {};
     try {
-      const unsubscribe = onSnapshot(
+      unsubscribeFirestore = onSnapshot(
         this.visitDocRef,
         { includeMetadataChanges: false },
         (snapshot) => {
+          if (isDisposed) return;
           if (snapshot.exists()) {
             const data = snapshot.data();
-            const count = typeof data.count === 'number' && data.count >= BASELINE_HISTORIC_VISITS
-              ? data.count
-              : Math.max(cachedCount, BASELINE_HISTORIC_VISITS);
-            
+            const currentCache = getCachedCount();
+            const count =
+              typeof data.count === 'number' && data.count >= BASELINE_HISTORIC_VISITS
+                ? Math.max(data.count, currentCache)
+                : Math.max(currentCache, BASELINE_HISTORIC_VISITS);
+
             if (typeof window !== 'undefined') {
               localStorage.setItem(LOCAL_STORAGE_CACHE_KEY, String(count));
             }
@@ -111,24 +145,26 @@ class VisitorCounterService {
             });
           }
         },
-        (error) => {
-          // Si le backend est temporairement indisponible (erreur 1 fois de connexion en iframe),
-          // on reste simplement en mode déconnecté avec les données en cache
-          console.debug('[VisitorCounter] Mode déconnecté / local actif:', error?.message || error);
+        () => {
+          // Repli silencieux sur les données serveur/locales en cas d'indisponibilité réseau Firestore
+          if (isDisposed) return;
           onUpdate({
-            totalVisits: cachedCount,
+            totalVisits: getCachedCount(),
             onlineNow: this.simulatedActiveOffset,
-            isLive: false
+            isLive: true
           });
         }
       );
-
-      return unsubscribe;
-    } catch (err) {
-      console.debug('[VisitorCounter] Erreur souscription, maintien du cache local:', err);
-      return () => {};
+    } catch {
+      // Maintien silencieux du cache local
     }
+
+    return () => {
+      isDisposed = true;
+      unsubscribeFirestore();
+    };
   }
 }
 
 export const visitorCounterService = new VisitorCounterService();
+

@@ -24,10 +24,8 @@ import { PodcastView } from './components/views/PodcastView';
 import { PrivacyPolicyView } from './components/views/PrivacyPolicyView';
 import { TermsView } from './components/views/TermsView';
 
-// Admin Components
-import { AdminLogin } from './components/admin/AdminLogin';
-import { AdminDashboard } from './components/admin/AdminDashboard';
-import { apiService, AdminUser } from './services/apiService';
+// Admin Component (Espace Secrétariat)
+import EspaceSecretariatComplete from './components/admin/EspaceSecretariatComplete';
 
 // Modals
 import { PrayerRequestModal } from './components/PrayerRequestModal';
@@ -138,11 +136,6 @@ export default function App() {
     return 'accueil';
   });
 
-  // Admin user authentication state
-  const [adminUser, setAdminUser] = useState<AdminUser | null>(() => {
-    return apiService.getCurrentAdmin();
-  });
-
   // Modal states
   const [isPrayerModalOpen, setIsPrayerModalOpen] = useState(false);
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
@@ -198,17 +191,6 @@ export default function App() {
   const handleOpenEpndEnrollModal = (courseId?: string) => {
     setSelectedEpndCourse(courseId);
     setIsEpndModalOpen(true);
-  };
-
-  const handleAdminLoginSuccess = (user: AdminUser) => {
-    setAdminUser(user);
-    handleNavigate('admin');
-  };
-
-  const handleAdminLogout = () => {
-    apiService.adminLogout();
-    setAdminUser(null);
-    handleNavigate('admin-login');
   };
 
   // Determine if we are on an admin interface screen
@@ -348,28 +330,11 @@ export default function App() {
           <TermsView onNavigate={handleNavigate} />
         )}
 
-        {/* 16. Admin Login */}
-        {currentView === 'admin-login' && (
-          <AdminLogin
-            onLoginSuccess={handleAdminLoginSuccess}
-            onBackToWebsite={() => handleNavigate('accueil')}
+        {/* 16. Espace Secrétariat / Admin Dashboard */}
+        {(currentView === 'admin' || currentView === 'admin-login') && (
+          <EspaceSecretariatComplete
+            onBackToSite={() => handleNavigate('accueil')}
           />
-        )}
-
-        {/* 16. Admin Dashboard (Protected Route) */}
-        {currentView === 'admin' && (
-          adminUser ? (
-            <AdminDashboard
-              currentUser={adminUser}
-              onLogout={handleAdminLogout}
-              onNavigateToWebsite={() => handleNavigate('accueil')}
-            />
-          ) : (
-            <AdminLogin
-              onLoginSuccess={handleAdminLoginSuccess}
-              onBackToWebsite={() => handleNavigate('accueil')}
-            />
-          )
         )}
       </main>
 

@@ -63,10 +63,12 @@ export const SocialProjectsView: React.FC<SocialProjectsViewProps> = ({
       fetchProjects();
     };
 
+    window.addEventListener('end_sec_updated', handlePublicationUpdate);
     window.addEventListener('dame_publications_updated', handlePublicationUpdate);
     window.addEventListener('storage', handlePublicationUpdate);
 
     return () => {
+      window.removeEventListener('end_sec_updated', handlePublicationUpdate);
       window.removeEventListener('dame_publications_updated', handlePublicationUpdate);
       window.removeEventListener('storage', handlePublicationUpdate);
     };

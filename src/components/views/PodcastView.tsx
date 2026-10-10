@@ -57,6 +57,13 @@ export const PodcastView: React.FC<PodcastViewProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     loadPodcasts();
+    const handleUpdate = () => loadPodcasts();
+    window.addEventListener('end_sec_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('end_sec_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
   }, []);
 
   const loadPodcasts = async () => {

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { PageTab } from '../../types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { PageTab, ChurchEvent } from '../../types';
 import { CHURCH_INFO } from '../../data/churchData';
 import { apiService } from '../../services/apiService';
+import { fmtDate } from '../admin/secretariatCore';
 import { 
   Calendar, 
   Clock, 
@@ -32,6 +33,29 @@ export const EventsView: React.FC<EventsViewProps> = ({
   onOpenPrayerModal
 }) => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'weekly' | 'special'>('all');
+  const [liveEvents, setLiveEvents] = useState<ChurchEvent[]>([]);
+
+  const loadLiveEvents = useCallback(async () => {
+    try {
+      const items = await apiService.getEvents(false);
+      setLiveEvents(items);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLiveEvents();
+    const handleUpdate = () => loadLiveEvents();
+    window.addEventListener('end_sec_updated', handleUpdate);
+    window.addEventListener('dame_events_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('end_sec_updated', handleUpdate);
+      window.removeEventListener('dame_events_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, [loadLiveEvents]);
   
   // Registration modal state
   const [registeringEvent, setRegisteringEvent] = useState<{ id: string; title: string; date: string } | null>(null);
@@ -39,7 +63,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [regSuccess, setRegSuccess] = useState(false);
 
-  const specialEvents = [
+  const staticSpecialEvents = [
     {
       id: 'anniv-eglise',
       title: 'Célébration Anniversaire de la Fondation (1979 - 2026)',
@@ -70,6 +94,20 @@ export const EventsView: React.FC<EventsViewProps> = ({
       category: 'Jeunesse (JNI)',
       highlight: false
     }
+  ];
+
+  const specialEvents = [
+    ...liveEvents.map((e) => ({
+      id: e.id,
+      title: e.title,
+      date: /^\d{4}-\d{2}-\d{2}$/.test(e.date) ? fmtDate(e.date) : e.date,
+      time: e.startTime ? e.startTime.replace(':', 'h') : '09h00',
+      location: e.location || 'Église du Nazaréen de Damé',
+      description: e.description,
+      category: e.category || 'Agenda Paroissial',
+      highlight: Boolean(e.highlight),
+    })),
+    ...staticSpecialEvents.filter((s) => !liveEvents.some((l) => l.id === s.id)),
   ];
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
