@@ -1,0 +1,22 @@
+[
+  {
+    "title": "Test Lettre Pastorale",
+    "subject": "Annonces du Culte — Église du Nazaréen de Damé",
+    "content": "Que la paix du Seigneur soit avec vous !",
+    "targetAudience": "Test (samuel.test@nazareen-dame.org)",
+    "status": "Sent",
+    "sentAt": "2026-10-10T05:36:00.216Z",
+    "id": "camp-1791610560216",
+    "createdAt": "2026-10-10T05:36:00.216Z"
+  },
+  {
+    "id": "camp-1",
+    "title": "Bulletin Mensuel — Février 2026",
+    "subject": "Nouvelles de l’Église du Nazaréen de Damé & Projets en cours",
+    "content": "Chers frères et sœurs en Christ, voici les nouvelles récentes de notre paroisse, l’avancement du projet caprin et le calendrier des cultes...",
+    "targetAudience": "Tous les membres et sympathisants",
+    "status": "Sent",
+    "createdAt": "2026-09-30T05:13:50.365Z",
+    "sentAt": "2026-10-01T05:13:50.365Z"
+  }
+]

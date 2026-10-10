@@ -37,7 +37,7 @@ export type DocValues = Record<string, string>;
 export interface IssuedDoc { id: string; ref: string; type: DocType; issueDate: string; recipient: string; values: DocValues }
 export interface BuiltDoc { ref: string; title: string; paragraphs: string[]; place: string }
 export type Notify = (msg: string, kind?: "ok" | "error") => void;
-export type SectionId = "accueil" | "projets" | "documents" | "membres" | "agenda" | "medias";
+export type SectionId = "accueil" | "projets" | "documents" | "membres" | "agenda" | "medias" | "newsletter";
 
 /* ────────────────────────────── Utilitaires ────────────────────────────── */
 
@@ -111,6 +111,135 @@ export function exportMembersToCsv(list: Member[], options: CsvExportOptions = {
   return fileName;
 }
 
+/** Analyse une ligne CSV en tenant compte des guillemets doubles. */
+function parseCsvLine(line: string, delimiter: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (ch === delimiter && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+/** Importe une liste de membres depuis le contenu texte d'un fichier CSV (; ou ,). */
+export function parseMembersCsv(csvText: string): Omit<Member, "id">[] {
+  const cleaned = csvText.replace(/^\uFEFF/, "").trim();
+  if (!cleaned) return [];
+  const lines = cleaned.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length < 2) return [];
+
+  const firstLine = lines[0];
+  const semicolonCount = (firstLine.match(/;/g) || []).length;
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  const delimiter = semicolonCount >= commaCount ? ";" : ",";
+
+  const headers = parseCsvLine(firstLine, delimiter).map((h) => h.toLowerCase());
+  const findCol = (keywords: string[], fallback: number) => {
+    const idx = headers.findIndex((h) => keywords.some((k) => h.includes(k)));
+    return idx >= 0 ? idx : fallback;
+  };
+
+  const hasOrderCol = headers[0] === "n°" || headers[0] === "no" || headers[0] === "id" || headers[0] === "#";
+  const nameIdx = findCol(["nom", "name", "membre"], hasOrderCol ? 1 : 0);
+  const phoneIdx = findCol(["tél", "tel", "phone", "mobile"], hasOrderCol ? 2 : 1);
+  const minIdx = findCol(["minist", "groupe", "département", "departement"], hasOrderCol ? 3 : 2);
+  const bapIdx = headers.findIndex((h) => h.includes("iso")) >= 0
+    ? headers.findIndex((h) => h.includes("iso"))
+    : findCol(["date de bapt", "baptême", "bapteme", "baptism"], hasOrderCol ? 5 : 3);
+
+  const parsed: Omit<Member, "id">[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCsvLine(lines[i], delimiter);
+    const name = (cols[nameIdx] || "").trim();
+    if (!name || name.toLowerCase() === "nom complet") continue;
+    const rawPhone = (cols[phoneIdx] || "").trim();
+    const phone = rawPhone === "Non renseigné" || rawPhone === "—" ? "" : rawPhone;
+    const ministry = (cols[minIdx] || "Assemblée générale").trim() || "Assemblée générale";
+    const rawBap = (cols[bapIdx] || "").trim();
+    const baptismDate = /^\d{4}-\d{2}-\d{2}$/.test(rawBap) ? rawBap : "";
+    parsed.push({ name, phone, ministry, baptismDate });
+  }
+  return parsed;
+}
+
+export function exportProjectsToCsv(list: Project[], delimiter: ";" | "," = ";"): string {
+  const cell = (s: string) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+  const rows = [
+    ["N°", "Titre du projet", "Catégorie", "Partenaire", "Responsable", "Statut", "Indicateurs d'impact", "Lien externe", "Archivé"],
+    ...list.map((p, idx) => [
+      String(idx + 1),
+      p.title,
+      p.category,
+      p.partner,
+      p.leader || "—",
+      p.status,
+      p.metrics.map((m) => `${m.label}: ${m.value}`).join(" | "),
+      p.url || "",
+      p.archived ? "Oui" : "Non",
+    ]),
+  ];
+  const csv = "\uFEFF" + rows.map((r) => r.map(cell).join(delimiter)).join("\r\n");
+  const fileName = `projets-sociaux-nazareen-dame-${todayISO()}.csv`;
+  downloadFile(fileName, csv, "text/csv;charset=utf-8");
+  return fileName;
+}
+
+export function exportEventsToCsv(list: EventItem[], delimiter: ";" | "," = ";"): string {
+  const cell = (s: string) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+  const rows = [
+    ["N°", "Titre de l'événement", "Type", "Date (ISO)", "Date formatée", "Heure", "Lieu", "Statut de publication", "Description"],
+    ...list.map((e, idx) => [
+      String(idx + 1),
+      e.title,
+      e.kind,
+      e.date,
+      fmtDate(e.date),
+      e.time || "",
+      e.location || CHURCH,
+      e.published ? "Publié" : "Brouillon",
+      e.description || "",
+    ]),
+  ];
+  const csv = "\uFEFF" + rows.map((r) => r.map(cell).join(delimiter)).join("\r\n");
+  const fileName = `agenda-evenements-nazareen-dame-${todayISO()}.csv`;
+  downloadFile(fileName, csv, "text/csv;charset=utf-8");
+  return fileName;
+}
+
+export function exportDocsToCsv(list: IssuedDoc[], delimiter: ";" | "," = ";"): string {
+  const cell = (s: string) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+  const rows = [
+    ["N°", "Référence officielle", "Type de document", "Destinataire / Événement", "Date d'émission (ISO)", "Date d'émission (Formatée)"],
+    ...list.map((d, idx) => [
+      String(idx + 1),
+      d.ref,
+      DOC_CONFIG[d.type]?.label || d.type,
+      d.recipient,
+      d.issueDate,
+      fmtDate(d.issueDate),
+    ]),
+  ];
+  const csv = "\uFEFF" + rows.map((r) => r.map(cell).join(delimiter)).join("\r\n");
+  const fileName = `historique-documents-nazareen-dame-${todayISO()}.csv`;
+  downloadFile(fileName, csv, "text/csv;charset=utf-8");
+  return fileName;
+}
+
 /** Fichiers audio choisis depuis l'appareil : disponibles pendant la session seulement. */
 export const localAudioUrls: Record<string, string> = {};
 
@@ -158,6 +287,7 @@ const ICONS: Record<string, string> = {
   archive: "M3 4h18v4H3zM5 8v12h14V8M10 12h4",
   print: "M6 9V3h12v6M6 18H4v-7h16v7h-2M6 14h12v7H6z",
   download: "M12 3v12M7 10l5 5 5-5M4 21h16",
+  upload: "M12 15V3M7 8l5-5 5 5M4 21h16",
   menu: "M3 6h18M3 12h18M3 18h18",
   x: "M18 6L6 18M6 6l12 12",
   check: "M20 6L9 17l-5-5",
@@ -169,6 +299,8 @@ const ICONS: Record<string, string> = {
   eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
   eyeOff: "M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 6.6A17 17 0 0 0 2 12s4 7 10 7a9.7 9.7 0 0 0 4-.9",
   restore: "M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5",
+  mail: "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 6l-10 7L2 6",
+  send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
 };
 
 export function Icon({ name, size = 18, className = "" }: { name: string; size?: number; className?: string }) {

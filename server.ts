@@ -19,6 +19,12 @@ import { CHURCH_SYSTEM_PROMPT, getLocalAssistantReply } from './server/churchBot
 import { generateDynamicBibleQuestions } from './server/bibleQuestionGenerator';
 import { analyticsStore } from './server/analyticsStore';
 import { generateEcclesiasticalDocument } from './server/documentGenerator';
+import {
+  getBrevoStatus,
+  syncContactToBrevo,
+  removeContactFromBrevo,
+  sendNewsletterViaBrevo,
+} from './server/brevoService';
 import { createServer as createViteServer } from 'vite';
 
 dotenv.config();
@@ -91,6 +97,7 @@ const ALLOWED_ADMIN_PASSWORDS = [
   'Bequel1974',
   '123456',
   'Nazareen1979',
+  'Nazareen2026',
   process.env.ADMIN_PASSWORD || ''
 ].filter(Boolean);
 
@@ -321,23 +328,52 @@ app.post('/api/submissions', (req: Request, res: Response) => {
   }
 });
 
-// Public Newsletter Subscription
-app.post('/api/newsletter/subscribe', (req: Request, res: Response) => {
+// Public Newsletter Status & Brevo Health (never exposes BREVO_API_KEY)
+app.get(['/api/newsletter', '/api/newsletter/status'], (_req: Request, res: Response) => {
+  try {
+    const subscribers = dbSubscribers.getAll();
+    const campaigns = dbCampaigns.getAll();
+    res.json({
+      success: true,
+      brevo: getBrevoStatus(),
+      subscriberCount: subscribers.length,
+      activeSubscriberCount: subscribers.filter((s) => s.status === 'Active').length,
+      campaignCount: campaigns.length,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Erreur lors de la vérification du service newsletter.' });
+  }
+});
+
+// Public & Admin Newsletter Subscription (synced with Brevo API v3)
+app.post(['/api/newsletter', '/api/newsletter/subscribe'], async (req: Request, res: Response) => {
   try {
     const { name, email, phone, firstName, lastName } = req.body;
+    const cleanEmail = String(email || '').trim().toLowerCase();
 
-    if (!email || !String(email).includes('@')) {
-      res.status(400).json({ success: false, error: 'Adresse e-mail invalide. Veuillez saisir un e-mail valide (ex: nom@domaine.com).' });
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      res.status(400).json({
+        success: false,
+        error: 'Adresse e-mail invalide. Veuillez saisir un e-mail valide (ex: nom@domaine.com).',
+      });
       return;
     }
 
     const result = dbSubscribers.add(
       name || '',
-      String(email).trim().toLowerCase(),
+      cleanEmail,
       phone ? String(phone).trim() : undefined,
       firstName ? String(firstName).trim() : undefined,
       lastName ? String(lastName).trim() : undefined
     );
+
+    const brevoSync = await syncContactToBrevo({
+      email: cleanEmail,
+      name: result.subscriber.name,
+      firstName: result.subscriber.firstName,
+      lastName: result.subscriber.lastName,
+      phone: result.subscriber.phone,
+    });
 
     let message = 'Merci pour votre inscription à la newsletter paroissiale !';
     if (result.alreadyActive) {
@@ -352,7 +388,9 @@ app.post('/api/newsletter/subscribe', (req: Request, res: Response) => {
       isNew: result.isNew,
       reactivated: result.reactivated,
       alreadyActive: result.alreadyActive,
-      subscriber: result.subscriber
+      subscriber: result.subscriber,
+      brevoSynced: brevoSync.synced,
+      mode: brevoSync.mode,
     });
   } catch (err) {
     console.error('Error subscribing newsletter:', err);
@@ -615,12 +653,16 @@ app.patch('/api/newsletter/subscribers/:id', requireAdminAuth, (req: Request, re
 });
 
 // Admin Delete Subscriber
-app.delete('/api/newsletter/subscribers/:id', requireAdminAuth, (req: Request, res: Response) => {
+app.delete('/api/newsletter/subscribers/:id', requireAdminAuth, async (req: Request, res: Response) => {
   try {
+    const existing = dbSubscribers.getById(req.params.id);
     const ok = dbSubscribers.delete(req.params.id);
     if (!ok) {
       res.status(404).json({ success: false, error: 'Abonné introuvable.' });
       return;
+    }
+    if (existing?.email) {
+      await removeContactFromBrevo(existing.email).catch(() => false);
     }
     res.json({ success: true, message: 'Abonné retiré de la liste avec succès.' });
   } catch (err) {
@@ -650,26 +692,101 @@ app.get('/api/newsletter/campaigns', requireAdminAuth, (req: Request, res: Respo
   }
 });
 
-app.post('/api/newsletter/campaigns', requireAdminAuth, (req: Request, res: Response) => {
+// Create or Send Newsletter Campaign (via Brevo API v3)
+app.post(['/api/newsletter/campaigns', '/api/newsletter/send'], requireAdminAuth, async (req: Request, res: Response) => {
   try {
-    const { title, subject, content, targetAudience, status } = req.body;
-    if (!title || !subject || !content) {
-      res.status(400).json({ success: false, error: 'Titre, objet et contenu sont obligatoires.' });
+    const { title, subject, content, targetAudience, status, testEmail } = req.body;
+    const cleanSubject = String(subject || '').trim();
+    const cleanTitle = String(title || cleanSubject).trim();
+    const cleanContent = String(content || '').trim();
+    const cleanTestEmail = testEmail ? String(testEmail).trim().toLowerCase() : undefined;
+
+    if (!cleanTitle || !cleanSubject || !cleanContent) {
+      res.status(400).json({ success: false, error: 'Le titre, l’objet et le contenu sont obligatoires.' });
       return;
     }
 
-    const campaign = dbCampaigns.create({
-      title: String(title).trim(),
-      subject: String(subject).trim(),
-      content: String(content).trim(),
-      targetAudience: targetAudience ? String(targetAudience).trim() : 'Tous les abonnés',
-      status: status === 'Sent' ? 'Sent' : 'Draft',
-      sentAt: status === 'Sent' ? new Date().toISOString() : undefined
+    if (cleanTestEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanTestEmail)) {
+      res.status(400).json({ success: false, error: 'Adresse e-mail de test invalide.' });
+      return;
+    }
+
+    const shouldSend = status === 'Sent' || req.path.endsWith('/send') || Boolean(cleanTestEmail);
+
+    if (!shouldSend) {
+      const draft = dbCampaigns.create({
+        title: cleanTitle,
+        subject: cleanSubject,
+        content: cleanContent,
+        targetAudience: targetAudience ? String(targetAudience).trim() : 'Tous les abonnés actifs',
+        status: 'Draft',
+      });
+      res.status(201).json({
+        success: true,
+        campaign: draft,
+        message: 'Brouillon de la campagne enregistré avec succès.',
+      });
+      return;
+    }
+
+    const activeSubscribers = dbSubscribers
+      .getAll()
+      .filter((s) => s.status === 'Active')
+      .map((s) => ({ email: s.email, name: s.name }));
+
+    if (!cleanTestEmail && activeSubscribers.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: 'Aucun abonné actif dans la liste. Ajoutez au moins un abonné actif avant d’envoyer une campagne.',
+      });
+      return;
+    }
+
+    const sendResult = await sendNewsletterViaBrevo({
+      title: cleanTitle,
+      subject: cleanSubject,
+      content: cleanContent,
+      recipients: activeSubscribers,
+      testEmail: cleanTestEmail,
     });
 
-    res.status(201).json({ success: true, campaign });
+    if (!sendResult.success) {
+      res.status(502).json({
+        success: false,
+        error: sendResult.error || 'Échec de l’envoi de la newsletter via Brevo.',
+      });
+      return;
+    }
+
+    const audienceLabel = cleanTestEmail
+      ? `Test (${cleanTestEmail})`
+      : targetAudience
+        ? `${String(targetAudience).trim()} (${sendResult.sentCount})`
+        : `Abonnés actifs (${sendResult.sentCount})`;
+
+    const campaign = dbCampaigns.create({
+      title: cleanTitle,
+      subject: cleanSubject,
+      content: cleanContent,
+      targetAudience: audienceLabel,
+      status: 'Sent',
+      sentAt: new Date().toISOString(),
+    });
+
+    res.status(201).json({
+      success: true,
+      campaign,
+      mode: sendResult.mode,
+      sentCount: sendResult.sentCount,
+      messageId: sendResult.messageId,
+      warning: sendResult.warning,
+      message: cleanTestEmail
+        ? `E-mail de test envoyé à ${cleanTestEmail} (${sendResult.mode === 'brevo' ? 'Brevo SMTP' : 'mode local'}).`
+        : `Newsletter envoyée avec succès à ${sendResult.sentCount} abonné(s) actif(s) !`,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, error: 'Erreur lors de la création de la campagne.' });
+    console.error('Error sending/creating campaign:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la création ou de l’envoi de la campagne.' });
   }
 });
 

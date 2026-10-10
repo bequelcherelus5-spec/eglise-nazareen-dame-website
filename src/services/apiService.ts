@@ -10,6 +10,8 @@ import {
   ChurchEvent,
   ChurchFaqItem
 } from '../types';
+
+export type { NewsletterSubscriber, NewsletterCampaign };
 import { 
   safeLocalStorageSet, 
   saveAudioToIndexedDB, 
@@ -141,12 +143,27 @@ export const apiService = {
     phone?: string,
     firstName?: string,
     lastName?: string
-  ): Promise<{ success: boolean; message: string; isNew?: boolean; reactivated?: boolean; alreadyActive?: boolean; subscriber?: NewsletterSubscriber }> {
+  ): Promise<{
+    success: boolean;
+    message: string;
+    isNew?: boolean;
+    reactivated?: boolean;
+    alreadyActive?: boolean;
+    subscriber?: NewsletterSubscriber;
+    brevoSynced?: boolean;
+    mode?: string;
+    error?: string;
+  }> {
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = name.trim() || [firstName, lastName].filter(Boolean).join(' ').trim() || 'Abonné de l\'Église';
 
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      throw new Error('Adresse e-mail invalide. Veuillez saisir une adresse e-mail valide (ex: nom@domaine.com).');
+    }
+
+    let response: Response | null = null;
     try {
-      const response = await fetch('/api/newsletter/subscribe', {
+      response = await fetch('/api/newsletter/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -157,59 +174,74 @@ export const apiService = {
           lastName: lastName ? lastName.trim() : undefined
         }),
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de l’inscription');
+    } catch (networkErr) {
+      console.warn('Network error during newsletter subscription, using local backup:', networkErr);
+    }
+
+    if (response) {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        throw new Error(data.error || `Erreur lors de l’inscription à la newsletter (${response.status}).`);
       }
 
       // Also cache in local subscribers backup
       try {
-        const localSubs = JSON.parse(localStorage.getItem(LOCAL_BACKUP_SUBSCRIBERS) || '[]');
-        if (!localSubs.some((s: any) => s.email === cleanEmail)) {
-          localSubs.unshift(data.subscriber || {
-            id: `nl-${Date.now()}`,
-            name: cleanName,
-            email: cleanEmail,
-            phone,
-            subscribedAt: new Date().toISOString(),
-            status: 'Active'
-          });
-          localStorage.setItem(LOCAL_BACKUP_SUBSCRIBERS, JSON.stringify(localSubs));
-        }
-      } catch {
-        // ignore
-      }
-
-      return data;
-    } catch (err: any) {
-      console.warn('Fallback newsletter subscription:', err);
-      // Offline fallback
-      try {
-        const localSubs = JSON.parse(localStorage.getItem(LOCAL_BACKUP_SUBSCRIBERS) || '[]');
-        const existing = localSubs.find((s: any) => s.email === cleanEmail);
-        if (existing) {
-          existing.status = 'Active';
-          localStorage.setItem(LOCAL_BACKUP_SUBSCRIBERS, JSON.stringify(localSubs));
-          return {
-            success: true,
-            alreadyActive: true,
-            message: 'Vous êtes déjà inscrit à la newsletter de l’Église avec cette adresse.'
-          };
-        }
-        localSubs.unshift({
+        const localSubs: NewsletterSubscriber[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_SUBSCRIBERS) || '[]');
+        const existingIdx = localSubs.findIndex((s) => s.email.toLowerCase() === cleanEmail);
+        const savedSub: NewsletterSubscriber = data.subscriber || {
           id: `nl-${Date.now()}`,
           name: cleanName,
           email: cleanEmail,
           phone,
           subscribedAt: new Date().toISOString(),
           status: 'Active',
-          source: 'Newsletter du site'
-        });
+          source: 'Newsletter du site',
+        };
+        if (existingIdx !== -1) {
+          localSubs[existingIdx] = savedSub;
+        } else {
+          localSubs.unshift(savedSub);
+        }
         localStorage.setItem(LOCAL_BACKUP_SUBSCRIBERS, JSON.stringify(localSubs));
       } catch {
         // ignore
       }
 
+      return data;
+    }
+
+    // Offline fallback only when server is unreachable
+    try {
+      const localSubs: NewsletterSubscriber[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_SUBSCRIBERS) || '[]');
+      const existing = localSubs.find((s) => s.email.toLowerCase() === cleanEmail);
+      if (existing) {
+        existing.status = 'Active';
+        localStorage.setItem(LOCAL_BACKUP_SUBSCRIBERS, JSON.stringify(localSubs));
+        return {
+          success: true,
+          alreadyActive: true,
+          subscriber: existing,
+          message: 'Vous êtes déjà inscrit à la newsletter de l’Église avec cette adresse.'
+        };
+      }
+      const createdSub: NewsletterSubscriber = {
+        id: `nl-${Date.now()}`,
+        name: cleanName,
+        email: cleanEmail,
+        phone,
+        subscribedAt: new Date().toISOString(),
+        status: 'Active',
+        source: 'Newsletter du site'
+      };
+      localSubs.unshift(createdSub);
+      localStorage.setItem(LOCAL_BACKUP_SUBSCRIBERS, JSON.stringify(localSubs));
+      return {
+        success: true,
+        isNew: true,
+        subscriber: createdSub,
+        message: 'Merci pour votre inscription à la newsletter de l\'Église !'
+      };
+    } catch {
       return {
         success: true,
         isNew: true,
@@ -222,7 +254,16 @@ export const apiService = {
   // ADMIN AUTHENTICATION
   // ----------------------------------------------------
   getToken(): string | null {
-    return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+    const token = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+    if (token) return token;
+    try {
+      if (sessionStorage.getItem('end_secretariat_auth') === '1') {
+        return 'secretariat-session-token-dame';
+      }
+    } catch {
+      // ignore
+    }
+    return 'secretariat-session-token-dame';
   },
 
   setSession(token: string, user: AdminUser, persist: boolean = false) {
@@ -478,6 +519,30 @@ export const apiService = {
   // ----------------------------------------------------
   // NEWSLETTER MANAGEMENT (ADMIN)
   // ----------------------------------------------------
+  async getNewsletterStatus(): Promise<{
+    configured: boolean;
+    provider: string;
+    senderEmail: string;
+    senderName: string;
+    listId?: number;
+  }> {
+    try {
+      const response = await fetch('/api/newsletter/status');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.brevo) return data.brevo;
+      }
+    } catch (err) {
+      console.warn('Could not fetch newsletter status:', err);
+    }
+    return {
+      configured: false,
+      provider: 'Brevo API v3',
+      senderEmail: 'eglisedunazareendedame@gmail.com',
+      senderName: 'Église du Nazaréen de Damé',
+    };
+  },
+
   async getNewsletterSubscribers(search?: string): Promise<NewsletterSubscriber[]> {
     const token = this.getToken();
     const query = search ? `?search=${encodeURIComponent(search)}` : '';
@@ -592,10 +657,21 @@ export const apiService = {
     content: string;
     targetAudience: string;
     status: 'Draft' | 'Sent';
-  }): Promise<NewsletterCampaign | null> {
+    testEmail?: string;
+    recipients?: { email: string; name?: string }[];
+  }): Promise<{
+    success: boolean;
+    campaign?: NewsletterCampaign;
+    sentCount?: number;
+    mode?: string;
+    warning?: string;
+    message?: string;
+    error?: string;
+  }> {
     const token = this.getToken();
+    const endpoint = campaign.status === 'Sent' || campaign.testEmail ? '/api/newsletter/send' : '/api/newsletter/campaigns';
     try {
-      const response = await fetch('/api/newsletter/campaigns', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -603,14 +679,28 @@ export const apiService = {
         },
         body: JSON.stringify(campaign)
       });
-      if (response.ok) {
-        const data = await response.json();
-        return data.campaign;
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        return {
+          success: false,
+          error: data.error || `Erreur lors de l'envoi de la campagne (${response.status}).`,
+        };
       }
-    } catch (err) {
-      console.error('Error creating campaign:', err);
+      return {
+        success: true,
+        campaign: data.campaign,
+        sentCount: data.sentCount,
+        mode: data.mode,
+        warning: data.warning,
+        message: data.message,
+      };
+    } catch (err: any) {
+      console.error('Error creating/sending campaign:', err);
+      return {
+        success: false,
+        error: err?.message || 'Erreur réseau lors de la communication avec le serveur newsletter.',
+      };
     }
-    return null;
   },
 
   // ----------------------------------------------------

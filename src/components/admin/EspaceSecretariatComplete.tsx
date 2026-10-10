@@ -46,6 +46,10 @@ import {
   downloadFile,
   exportMembersToCsv,
   buildMembersCsvRows,
+  parseMembersCsv,
+  exportProjectsToCsv,
+  exportEventsToCsv,
+  exportDocsToCsv,
   localAudioUrls,
   useStored,
   Icon,
@@ -82,6 +86,7 @@ import {
   seedAnnouncements,
   seedDocs,
 } from "./secretariatCore";
+import NewsletterManager from "./NewsletterManager";
 
 export type {
   Status,
@@ -184,6 +189,7 @@ function DashboardView({
     { label: "Ajouter ou mettre à jour un projet", hint: "Solaire, chèvres, Compassion, micro-crédit…", icon: "folder", to: "projets" },
     { label: "Inscrire un membre", hint: "Registre des membres et ministères", icon: "users", to: "membres" },
     { label: "Programmer un culte ou un événement", hint: "Calendrier de l'église", icon: "calendar", to: "agenda" },
+    { label: "Newsletter & Messagerie (Brevo)", hint: "Gérer les abonnés et envoyer une lettre pastorale", icon: "mail", to: "newsletter" },
   ];
 
   return (
@@ -374,6 +380,17 @@ function ProjectsView({ projects, setProjects, notify }: {
   return (
     <div>
       <SectionHeader title="Projets sociaux" subtitle="Suivez les projets communautaires, leurs partenaires et leurs indicateurs d'impact.">
+        <button
+          type="button"
+          onClick={() => {
+            const fileName = exportProjectsToCsv(filtered);
+            notify(`Projets exportés en CSV (${filtered.length}) : ${fileName}`);
+          }}
+          disabled={filtered.length === 0}
+          className={btnGhost}
+        >
+          <Icon name="download" size={16} />Exporter en CSV
+        </button>
         <button type="button" onClick={openNew} className={btnPrimary}><Icon name="plus" size={16} />Nouveau projet</button>
       </SectionHeader>
 
@@ -727,7 +744,21 @@ function DocumentsView({ docs, setDocs, notify }: {
       </div>
 
       <div className={`${cardCls} p-5`}>
-        <h3 className="es-serif mb-3 text-lg font-semibold text-[#1B2A4A]">Historique des documents émis ({docs.length})</h3>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="es-serif text-lg font-semibold text-[#1B2A4A]">Historique des documents émis ({docs.length})</h3>
+          {docs.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const fileName = exportDocsToCsv(docs);
+                notify(`Historique des documents exporté en CSV : ${fileName}`);
+              }}
+              className={btnGhost}
+            >
+              <Icon name="download" size={15} />Exporter l'historique (CSV)
+            </button>
+          )}
+        </div>
         {docs.length === 0 ? (
           <p className="py-4 text-sm text-slate-500">Les documents imprimés ou téléchargés apparaîtront automatiquement ici.</p>
         ) : (
@@ -802,6 +833,41 @@ function MembersView({ members, setMembers, notify }: {
   const [csvScope, setCsvScope] = useState<"filtered" | "all" | "baptized" | "unbaptized">("filtered");
   const [csvDelimiter, setCsvDelimiter] = useState<";" | ",">(";");
   const [csvIncludeMeta, setCsvIncludeMeta] = useState<boolean>(true);
+  const csvFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleImportCsvFile = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === "string" ? reader.result : "";
+      const imported = parseMembersCsv(text);
+      if (imported.length === 0) {
+        notify("Aucune ligne de membre valide détectée dans ce fichier CSV.", "error");
+        return;
+      }
+      setMembers((prev) => {
+        const existingNames = new Set(prev.map((m) => m.name.trim().toLowerCase()));
+        const newItems: Member[] = [];
+        for (const item of imported) {
+          const key = item.name.trim().toLowerCase();
+          if (!existingNames.has(key)) {
+            existingNames.add(key);
+            newItems.push({ id: uid(), ...item });
+          }
+        }
+        notify(
+          newItems.length > 0
+            ? `${newItems.length} nouveau(x) membre(s) importé(s) depuis « ${file.name} » !`
+            : `Tous les membres du fichier « ${file.name} » figurent déjà dans le registre.`,
+        );
+        return [...newItems, ...prev];
+      });
+      setCsvModalOpen(false);
+    };
+    reader.readAsText(file, "UTF-8");
+    ev.target.value = "";
+  };
 
   const counts = useMemo(() => {
     const map: Record<string, number> = {};
@@ -901,12 +967,20 @@ function MembersView({ members, setMembers, notify }: {
   return (
     <div>
       <SectionHeader title="Registre des membres" subtitle="Répertoire des frères et sœurs de l'assemblée et répartition par ministère.">
+        <input
+          ref={csvFileInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          onChange={handleImportCsvFile}
+          className="hidden"
+          aria-label="Importer un fichier CSV de membres"
+        />
         <button type="button" onClick={exportCsv} className={btnGold} disabled={filtered.length === 0}
           title="Télécharger immédiatement la liste affichée au format CSV (Excel / LibreOffice)">
           <Icon name="download" size={16} />Exporter en CSV ({filtered.length})
         </button>
-        <button type="button" onClick={() => setCsvModalOpen(true)} className={btnGhost} disabled={members.length === 0}
-          title="Choisir le format de tableur (Excel / Google Sheets), les colonnes et prévisualiser">
+        <button type="button" onClick={() => setCsvModalOpen(true)} className={btnGhost}
+          title="Choisir le format de tableur (Excel / Google Sheets), importer un CSV ou prévisualiser">
           <Icon name="file" size={16} />Options tableur / CSV
         </button>
         <button type="button" onClick={openNew} className={btnPrimary}><Icon name="plus" size={16} />Inscrire un membre</button>
@@ -1088,14 +1162,23 @@ function MembersView({ members, setMembers, notify }: {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4">
-              <button
-                type="button"
-                onClick={handleCopyForSpreadsheet}
-                disabled={targetCsvMembers.length === 0}
-                className={btnGhost}
-              >
-                <Icon name="file" size={16} />Copier pour coller dans Excel / Sheets
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyForSpreadsheet}
+                  disabled={targetCsvMembers.length === 0}
+                  className={btnGhost}
+                >
+                  <Icon name="file" size={16} />Copier pour Excel / Sheets
+                </button>
+                <button
+                  type="button"
+                  onClick={() => csvFileInputRef.current?.click()}
+                  className={btnGhost}
+                >
+                  <Icon name="upload" size={16} />Importer un fichier .CSV
+                </button>
+              </div>
               <div className="flex gap-2">
                 <button type="button" onClick={() => setCsvModalOpen(false)} className={btnGhost}>
                   Fermer
@@ -1179,6 +1262,17 @@ function AgendaView({ events, setEvents, notify }: {
   return (
     <div>
       <SectionHeader title="Événements & Agenda" subtitle="Cultes, réunions de prière, conventions et rencontres communautaires.">
+        <button
+          type="button"
+          onClick={() => {
+            const fileName = exportEventsToCsv(list);
+            notify(`Agenda exporté en CSV (${list.length} événement(s)) : ${fileName}`);
+          }}
+          disabled={list.length === 0}
+          className={btnGhost}
+        >
+          <Icon name="download" size={16} />Exporter l'agenda (CSV)
+        </button>
         <button type="button" onClick={openNew} className={btnPrimary}><Icon name="plus" size={16} />Nouvel événement</button>
       </SectionHeader>
 
@@ -1547,6 +1641,7 @@ const NAV: { id: SectionId; label: string; icon: string }[] = [
   { id: "membres", label: "Registre des membres", icon: "users" },
   { id: "agenda", label: "Événements & Agenda", icon: "calendar" },
   { id: "medias", label: "Prédications & Médias", icon: "mic" },
+  { id: "newsletter", label: "Newsletter & Brevo", icon: "mail" },
 ];
 
 export interface EspaceSecretariatProps {
@@ -1687,6 +1782,7 @@ export default function EspaceSecretariatComplete({ password = DEFAULT_PASSWORD,
             <MediaView sermons={sermons} setSermons={setSermons}
               announcements={announcements} setAnnouncements={setAnnouncements} notify={notify} />
           )}
+          {section === "newsletter" && <NewsletterManager notify={notify} />}
         </main>
 
         <footer className="border-t border-slate-200 bg-white px-6 py-3 text-center text-xs text-slate-500">

@@ -1,5 +1,21 @@
 [
   {
+    "name": "Frère Samuel Test",
+    "email": "samuel.test@nazareen-dame.org",
+    "phone": "+509 48596089",
+    "message": "Nouvel abonnement à la newsletter paroissiale : samuel.test@nazareen-dame.org (+509 48596089)",
+    "category": "Newsletter Subscribers",
+    "status": "En attente",
+    "details": {
+      "email": "samuel.test@nazareen-dame.org",
+      "phone": "+509 48596089",
+      "source": "Newsletter du site"
+    },
+    "id": "sub-1791610560207-934",
+    "dateReceived": "2026-10-10T05:36:00.207Z",
+    "notes": ""
+  },
+  {
     "name": "Pasteur Émile",
     "email": "emile.test@example.com",
     "message": "Nouvel abonnement à la newsletter paroissiale : emile.test@example.com",
