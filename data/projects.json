@@ -1,0 +1,43 @@
+[
+  {
+    "id": "projet-compassion-ha0926",
+    "code": "COMP-HA0926",
+    "title": "Compassion HA0926",
+    "category": "Parrainage d'enfants",
+    "partner": "Compassion International",
+    "leader": "Sœur Marie-Carmelle Louis & Direction CDEJ",
+    "date": "2019-09-01",
+    "description": "Centre d'accueil et de développement holistique des enfants parrainés (CDEJ HA0926) en partenariat avec Compassion International : soutien scolaire, suivi médical régulier, alimentation équilibrée et formation spirituelle pour les enfants et les jeunes de Damé.",
+    "objectives": [
+      "Libérer les enfants de la pauvreté au nom de Jésus",
+      "Garantir l'accès à la scolarité, au soutien pédagogique et aux fournitures scolaires",
+      "Assurer des bilans médicaux annuels, les soins de santé et une nutrition équilibrée",
+      "Accompagner spirituellement et socialement les enfants et leurs familles à Damé"
+    ],
+    "metrics": [
+      {
+        "label": "Enfants inscrits",
+        "value": "250+"
+      },
+      {
+        "label": "Tuteurs et encadreurs",
+        "value": "12"
+      },
+      {
+        "label": "Bilans de santé annuels",
+        "value": "100%"
+      },
+      {
+        "label": "Année de lancement",
+        "value": "2019"
+      }
+    ],
+    "image": "/images/comite.jpg",
+    "status": "En cours",
+    "published": true,
+    "url": "",
+    "archived": false,
+    "createdAt": "2019-09-01T08:00:00.000Z",
+    "updatedAt": "2026-03-01T08:00:00.000Z"
+  }
+]

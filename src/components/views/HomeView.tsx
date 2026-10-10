@@ -361,7 +361,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   Projets Sociaux & CDEJ
                 </h3>
                 <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-                  Énergie solaire avec la Honnold Foundation (2026), parrainage CDEJ avec Compassion International (2019) pour 250+ enfants, et élevage caprin.
+                  Parrainage holistique CDEJ HA0926 (Code COMP-HA0926) en partenariat avec Compassion International pour plus de 250 enfants et jeunes de Fond Damé.
                 </p>
               </div>
               <button

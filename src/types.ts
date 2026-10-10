@@ -64,10 +64,16 @@ export interface EpndCourse {
 
 export interface SocialProject {
   id: string;
+  code: string;
   title: string;
   partner?: string;
+  category?: string;
+  leader?: string;
   year?: string;
-  status: 'En cours' | 'Actif' | 'Nouveau';
+  date?: string;
+  image?: string;
+  published?: boolean;
+  status: 'En cours' | 'Actif' | 'Nouveau' | 'En attente' | 'Planifié' | 'Terminé';
   description: string;
   impactMetrics: { label: string; value: string }[];
   keyObjectives: string[];
@@ -201,10 +207,11 @@ export interface NewsletterSubscriber {
 export type PublicationStatus = 'Brouillon' | 'En attente' | 'Publiée' | 'Archivée';
 export type PublicationKind = 'article' | 'annonce' | 'projet';
 export type EditorMode = 'visual' | 'html';
-export type ProjectProgressStatus = 'Planifié' | 'En cours' | 'Terminé';
+export type ProjectProgressStatus = 'Planifié' | 'En attente' | 'En cours' | 'Terminé';
 
 export interface ChurchPublication {
   id: string;
+  code?: string;
   title: string;
   content: string;
   summary: string;
@@ -222,10 +229,14 @@ export interface ChurchPublication {
   hasCustomImage?: boolean;
   
   // Champs spécifiques aux Projets communautaires
-  budget?: string; // ex: "$5,000 USD" ou "250,000 HTG MonCash"
-  targetGoal?: string; // ex: "Approvisionner en eau potable 300 familles"
+  partner?: string;
+  leader?: string;
+  budget?: string;
+  targetGoal?: string;
+  objectives?: string[];
   projectStatus?: ProjectProgressStatus;
-  externalUrl?: string; // Lien externe officiel (ex: Honnold Foundation)
+  published?: boolean;
+  externalUrl?: string;
   pastorQuote?: { text: string; author: string } | string;
   impactMetrics?: { label: string; value: string }[];
 }

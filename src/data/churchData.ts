@@ -64,9 +64,9 @@ export const CHURCH_TIMELINE: ChurchTimelineEvent[] = [
   },
   {
     year: 2019,
-    title: "Partenariat Stratégique avec Compassion International",
-    subtitle: "Centre de Développement de l'Enfant et des Jeunes (CDEJ)",
-    description: "Établissement du partenariat d'envergure pour parrainer et encadrer holistiquement les enfants démunis sur les plans physique, intellectuel, émotionnel et spirituel.",
+    title: "Partenariat Stratégique avec Compassion International (HA0926)",
+    subtitle: "Centre de Développement de l'Enfant et des Jeunes (CDEJ HA0926)",
+    description: "Établissement du partenariat d'envergure (Code COMP-HA0926) pour parrainer et encadrer holistiquement les enfants démunis sur les plans physique, intellectuel, émotionnel et spirituel.",
     iconName: "HeartHandshake",
     badge: "Impact Social"
   },
@@ -77,22 +77,6 @@ export const CHURCH_TIMELINE: ChurchTimelineEvent[] = [
     description: "Inauguration du centre technique de formation aux métiers manuels et linguistiques (Couture, Maçonnerie, Musique, Anglais) pour lutter contre le chômage des jeunes.",
     iconName: "GraduationCap",
     badge: "Formation"
-  },
-  {
-    year: 2026,
-    title: "Projet d'Énergie Solaire avec la Honnold Foundation",
-    subtitle: "Énergie propre pour l'éducation des élèves de Damé",
-    description: "Déploiement de 100 stations solaires portables pour 300+ écoliers et mise en place d'un Comité d'Énergie (50% de femmes) en partenariat avec la Honnold Foundation.",
-    iconName: "Sun",
-    badge: "Partenariat International"
-  },
-  {
-    year: 2026,
-    title: "Projet d'Élevage Caprin avec la Fondation Digicel",
-    subtitle: "Autonomisation économique durable",
-    description: "Déploiement d'un programme communautaire d'élevage caprin en partenariat avec la Fondation Digicel pour soutenir le revenu des familles vulnérables de la 3ème Section Damé.",
-    iconName: "Sparkles",
-    badge: "Innovation & Avenir"
   }
 ];
 
@@ -302,87 +286,29 @@ export const EPND_COURSES: EpndCourse[] = [
 
 export const SOCIAL_PROJECTS: SocialProject[] = [
   {
-    id: "energie-solaire-honnold",
-    title: "Projet d'Énergie Solaire Communautaire à Damé (Partenariat Honnold Foundation)",
-    partner: "Honnold Foundation",
-    year: "Septembre 2026",
-    status: "Nouveau",
-    description: "En partenariat avec la Honnold Foundation, l'Église du Nazaréen de Damé déploie un programme d'énergie solaire propre pour remplacer les lampes à kérosène toxiques et permettre aux élèves d'étudier en toute sécurité.",
-    impactMetrics: [
-      { label: "Stations solaires portables", value: "100" },
-      { label: "Élèves et écoliers impactés", value: "300+" },
-      { label: "Femmes au Comité d'Énergie", value: "50%" },
-      { label: "Partenaire International", value: "Honnold Foundation" }
-    ],
-    keyObjectives: [
-      "Remplacement des lampes à kérosène toxiques par 100 stations solaires portables",
-      "Permettre à plus de 300 élèves d'étudier le soir dans des conditions sûres et saines",
-      "Établir un Comité d'Énergie Communautaire composé à 50% de femmes locales",
-      "Fournir une énergie propre, renouvelable et durable à la communauté de Damé"
-    ],
-    externalUrl: "https://www.honnoldfoundation.org/partner/eglise-du-nazareen-de-dame",
-    pastorQuote: {
-      text: "Lorsque nos enfants peuvent étudier en toute sécurité la nuit sans la fumée toxique du kérosène, nous éclairons le chemin pour sortir de la pauvreté et nous construisons un avenir durable grâce à l'unité communautaire.",
-      author: "Pasteur Bequel CHERELUS, Leader du Projet"
-    }
-  },
-  {
-    id: "cdej",
-    title: "Centre de Développement de l'Enfant et des Jeunes (CDEJ)",
+    id: "projet-compassion-ha0926",
+    code: "COMP-HA0926",
+    title: "Compassion HA0926",
     partner: "Compassion International",
+    category: "Parrainage d'enfants",
+    leader: "Sœur Marie-Carmelle Louis & Direction CDEJ",
     year: "Depuis 2019",
-    status: "Actif",
-    description: "Programme de parrainage chrétien holistique pour des centaines d'enfants de Damé. Il garantit un suivi médical régulier, un repas nutritif, un soutien scolaire et un apprentissage biblique continu.",
+    date: "2019-09-01",
+    image: "/images/comite.jpg",
+    published: true,
+    status: "En cours",
+    description: "Centre d'accueil et de développement holistique des enfants parrainés (CDEJ HA0926) en partenariat avec Compassion International : soutien scolaire, suivi médical régulier, alimentation équilibrée et formation spirituelle pour les enfants et les jeunes de Damé.",
     impactMetrics: [
-      { label: "Enfants parrainés et suivis", value: "250+" },
+      { label: "Enfants inscrits", value: "250+" },
+      { label: "Tuteurs et encadreurs", value: "12" },
       { label: "Bilans de santé annuels", value: "100%" },
-      { label: "Années d'impact continu", value: "7 ans" },
-      { label: "Repas nutritifs servis", value: "Plusieurs milliers" }
+      { label: "Année de lancement", value: "2019" }
     ],
     keyObjectives: [
       "Libérer les enfants de la pauvreté au nom de Jésus",
-      "Garantir l'accès à la scolarité et aux fournitures scolaires",
-      "Fournir des bilans pédiatriques et vaccinations préventives",
-      "Former les parents aux pratiques d'hygiène et de nutrition"
-    ]
-  },
-  {
-    id: "elevage-caprin",
-    title: "Projet d'Élevage Caprin Communautaire",
-    partner: "Fondation Digicel",
-    year: "Lancement 2026",
-    status: "Nouveau",
-    description: "Projet économique solidaire octroyant des caprins reproducteurs de race améliorée aux familles de la communauté selon le principe du don rotatif (la première femelle née est transmise à une autre famille).",
-    impactMetrics: [
-      { label: "Familles bénéficiaires cibles", value: "80+" },
-      { label: "Cheptel initial prévu", value: "[À COMPLÉTER]" },
-      { label: "Partenaire financier", value: "Fondation Digicel" },
-      { label: "Année de déploiement", value: "2026" }
-    ],
-    keyObjectives: [
-      "Générer une source de revenu autonome pour les foyers vulnérables",
-      "Former les éleveurs aux soins vétérinaires préventifs",
-      "Instituer un mécanisme d'entraide rotatif transparent",
-      "Valoriser les ressources agricoles locales de Damé"
-    ]
-  },
-  {
-    id: "solidarite-feminine",
-    title: "Groupes de Solidarité Féminins & Micro-Crédit Solidaire",
-    partner: "Ministère des Femmes",
-    year: "En cours",
-    status: "Actif",
-    description: "Cercles d'épargne et de crédit communautaire (Mutuelle de solidarité) permettant aux femmes de développer de petits commerces vivriers et de subvenir aux dépenses scolaires de leurs enfants.",
-    impactMetrics: [
-      { label: "Groupes de femmes actifs", value: "4 groupes" },
-      { label: "Taux de remboursement", value: "98%" },
-      { label: "Bénéficiaires directes", value: "60+ mères" },
-      { label: "Fonds solidaire autogéré", value: "Actif" }
-    ],
-    keyObjectives: [
-      "Favoriser l'épargne locale sécurisée",
-      "Financer le petit commerce de denrées agricoles et d'artisanat",
-      "Créer un réseau fraternel d'assistance en cas de maladie ou de deuil"
+      "Garantir l'accès à la scolarité, au soutien pédagogique et aux fournitures scolaires",
+      "Assurer des bilans médicaux annuels, les soins de santé et une nutrition équilibrée",
+      "Accompagner spirituellement et socialement les enfants et leurs familles à Damé"
     ]
   }
 ];

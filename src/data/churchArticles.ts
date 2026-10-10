@@ -22,24 +22,6 @@ export const NEWS_ARTICLES: NewsArticle[] = [
     ]
   },
   {
-    id: "lancement-projet-elevage-digicel",
-    title: "Partenariat d'impact communautaire : Lancement du projet d'élevage caprin avec la Fondation Digicel",
-    category: "Communauté",
-    date: "15 Janvier 2026",
-    author: "Conseil d'Administration de l'Église",
-    readTime: "5 min",
-    summary: "L'Église officialise son initiative majeure avec la Fondation Digicel pour soutenir plus de 80 familles vulnérables par le don solidaire et rotatif d'animaux reproducteurs.",
-    imageUrl: "/images/cour_paysage.jpg",
-    content: [
-      "Dans le cadre de sa mission intégrale qui unit l'annonce de la Parole de Dieu et l'action sociale bienveillante, l'Église du Nazaréen de Damé est heureuse d'annoncer la concrétisation de son partenariat stratégique avec la prestigieuse Fondation Digicel. Cette collaboration prend la forme d'un projet communautaire novateur d'élevage caprin axé sur la durabilité et l'autonomie financière des ménages.",
-      "La 3ème Section Damé, située dans la péninsule du Nord-Ouest d'Haïti, fait face à des défis climatiques récurrents caractérisés par des périodes de sécheresse prolongée. L'élevage de chèvres rustiques et adaptées aux conditions locales constitue historiquement une bouée de sauvetage économique essentielle pour les agriculteurs familiaux. À travers ce projet, quatre-vingts familles sélectionnées selon des critères rigoureux de vulnérabilité recevront chacune un couple de caprins reproducteurs de race améliorée.",
-      "Le principe directeur de ce programme repose sur le concept biblique de la solidarité agissante et de l'intendance responsable (koinônia). Chaque famille bénéficiaire s'engage formellement, par un pacte communautaire supervisé par les diacres de l'Église, à élever avec soin les animaux et à rétrocéder le premier chevreau femelle né à une autre famille de la localité inscrite sur la liste d'attente. Ce mécanisme solidaire de rotation perpétuelle garantit que l'aide initiale se multipliera au fil des ans, touchant un nombre toujours croissant de foyers.",
-      "Parallèlement à la distribution des bêtes, des ateliers de formation vétérinaire élémentaire seront animés dans l'enceinte de l'Église par des spécialistes en santé animale. Les bénéficiaires apprendront les techniques de prophylaxie, la détection des maladies courantes, la gestion des fourrages résilients et l'aménagement d'abris hygiéniques. Des kits sanitaires de premier secours seront également remis aux responsables des comités de quartier.",
-      "Lors de la réunion d'inauguration, le Pasteur Bequel CHERELUS a salué l'engagement de la Fondation Digicel : « Le Christ nous a enseigné à nourrir celui qui a faim et à relever le frère qui trébuche. Une Église vivante ne peut demeurer insensible à la détresse matérielle de son environnement. Ce projet d'élevage n'est pas un acte d'assistanat passif, mais un outil d'émancipation humaine et de dignité retrouvée. Nous exprimons notre reconnaissance à nos partenaires qui nous font confiance pour gérer cette ressource avec intégrité ».",
-      "Les premiers troupeaux seront réceptionnés et bénis lors d'une cérémonie officielle le mois prochain, marquant le commencement d'une aventure agricole féconde pour toute la contrée de Fond Damé."
-    ]
-  },
-  {
     id: "epnd-inscriptions-nouvelle-promotion",
     title: "École Professionnelle EPND : La formation technique et manuelle comme levier d'autonomie pour la jeunesse",
     category: "Éducation",
@@ -67,7 +49,7 @@ export const NEWS_ARTICLES: NewsArticle[] = [
     summary: "Bilan complet de la grande campagne annuelle de santé pédiatrique et dentaire menée en partenariat avec Compassion International au bénéfice de plus de 250 enfants vulnérables.",
     imageUrl: "/images/comite.jpg",
     content: [
-      "Depuis plusieurs années, l'Église du Nazaréen de Damé abrite le Centre de Développement des Enfants et des Jeunes (CDEJ HA-0809), fruit d'une coopération fraternelle et rigoureuse avec l'organisation chrétienne internationale Compassion International. Ce programme vise le développement holistique de l'enfant à travers quatre dimensions fondamentales : spirituelle, physique, socio-émotionnelle et cognitive.",
+      "Depuis plusieurs années, l'Église du Nazaréen de Damé abrite le Centre de Développement des Enfants et des Jeunes (CDEJ HA0926), fruit d'une coopération fraternelle et rigoureuse avec l'organisation chrétienne internationale Compassion International. Ce programme vise le développement holistique de l'enfant à travers quatre dimensions fondamentales : spirituelle, physique, socio-émotionnelle et cognitive.",
       "Durant trois journées consécutives au cours du mois de décembre, une brigade médicale mobile composée de deux médecins généralistes, d'une infirmière pédiatrique et d'un assistant en santé dentaire a investi les locaux de notre Église. L'objectif était de réaliser le grand bilan médical annuel de l'ensemble des 250 enfants et adolescents enregistrés au programme de parrainage.",
       "Chaque enfant a bénéficié d'une auscultation clinique minutieuse, d'une mesure des paramètres biométriques (poids, taille, indice de masse corporelle pour dépister tout retard de croissance), ainsi que d'un dépistage systématique des affections respiratoires, des dermatoses tropicales et des anémies ferriprives. À l'issue des examens, des cures complètes de déparasitants intestinaux et des suppléments de multivitamines ont été distribuées sous supervision médicale.",
       "Un accent particulier a été mis sur la sensibilisation à l'hygiène bucco-dentaire et au lavage régulier des mains, leviers primordiaux dans la prévention des maladies hydriques dans les zones rurales. Des trousses contenant brosses à dents, dentifrice fluoré et savons antiseptiques ont été offertes à chaque enfant participant. Les cas nécessitant des soins spécialisés ou des examens complémentaires de laboratoire ont été immédiatement orientés vers l'hôpital de référence avec prise en charge intégrale des frais médicaux par le centre.",

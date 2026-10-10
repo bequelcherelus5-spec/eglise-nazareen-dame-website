@@ -10,10 +10,12 @@ import {
   dbCampaigns, 
   dbPodcasts, 
   dbPublications, 
+  dbProjects,
   dbEvents, 
   dbFaq,
   SubmissionCategory, 
-  SubmissionStatus 
+  SubmissionStatus,
+  ProjectProgressStatus
 } from './server/db';
 import { CHURCH_SYSTEM_PROMPT, getLocalAssistantReply } from './server/churchBotKnowledge';
 import { generateDynamicBibleQuestions } from './server/bibleQuestionGenerator';
@@ -431,6 +433,35 @@ app.get('/api/publications', (req: Request, res: Response) => {
   } catch (err) {
     console.error('Error fetching publications:', err);
     res.status(500).json({ success: false, error: 'Erreur lors de la récupération des publications.' });
+  }
+});
+
+// Public & Admin Social Projects List
+app.get('/api/projects', (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const isAdminRequest = Boolean(authHeader && authHeader.startsWith('Bearer ') && authHeader.length > 15);
+    const includeDrafts = isAdminRequest && req.query.includeDrafts === 'true';
+    const includeArchived = isAdminRequest && req.query.includeArchived === 'true';
+    const search = req.query.search ? String(req.query.search) : undefined;
+    const projects = dbProjects.getAll(includeDrafts, includeArchived, search);
+    res.json({ success: true, count: projects.length, projects });
+  } catch (err) {
+    console.error('Error fetching projects:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la récupération des projets.' });
+  }
+});
+
+app.get('/api/projects/:id', (req: Request, res: Response) => {
+  try {
+    const project = dbProjects.getById(req.params.id) || dbProjects.getByCode(req.params.id);
+    if (!project) {
+      res.status(404).json({ success: false, error: 'Projet introuvable.' });
+      return;
+    }
+    res.json({ success: true, project });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Erreur lors de la récupération du projet.' });
   }
 });
 
@@ -928,6 +959,269 @@ app.delete('/api/publications/:id', requireAdminAuth, (req: Request, res: Respon
     res.json({ success: true, message: 'Publication supprimée avec succès.' });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Erreur lors de la suppression de la publication.' });
+  }
+});
+
+// ----------------------------------------------------
+// ADMIN SOCIAL PROJECTS CRUD & PROJECT CODE MANAGEMENT
+// ----------------------------------------------------
+
+const PROJECT_CODE_REGEX = /^[A-Za-z0-9_-]{2,32}$/;
+
+app.post('/api/projects', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const {
+      id,
+      code,
+      title,
+      category,
+      partner,
+      leader,
+      date,
+      description,
+      objectives,
+      metrics,
+      image,
+      status,
+      published,
+      url,
+      archived
+    } = req.body;
+
+    const cleanTitle = String(title || '').trim();
+    const cleanCode = String(code || '').trim().toUpperCase();
+
+    if (!cleanTitle) {
+      res.status(400).json({ success: false, error: 'Le titre du projet est obligatoire.' });
+      return;
+    }
+    if (!cleanCode || !PROJECT_CODE_REGEX.test(cleanCode)) {
+      res.status(400).json({
+        success: false,
+        error: 'Le code du projet est obligatoire (2 à 32 caractères alphanumériques, ex. : COMP-HA0926).'
+      });
+      return;
+    }
+    if (!dbProjects.isCodeUnique(cleanCode, id)) {
+      res.status(400).json({
+        success: false,
+        error: `Le code projet « ${cleanCode} » est déjà attribué à un autre projet.`
+      });
+      return;
+    }
+    if (url && String(url).trim() && !/^https?:\/\/\S+\.\S+/i.test(String(url).trim())) {
+      res.status(400).json({ success: false, error: 'Le lien externe doit commencer par http:// ou https://.' });
+      return;
+    }
+
+    const validStatuses: ProjectProgressStatus[] = ['Planifié', 'En attente', 'En cours', 'Terminé'];
+    const cleanStatus: ProjectProgressStatus = validStatuses.includes(status) ? status : 'En cours';
+
+    const cleanObjectives = Array.isArray(objectives)
+      ? objectives.map((o: any) => String(o || '').trim()).filter(Boolean)
+      : [];
+    const cleanMetrics = Array.isArray(metrics)
+      ? metrics
+          .map((m: any) => ({ label: String(m?.label || '').trim(), value: String(m?.value || '').trim() }))
+          .filter((m: { label: string; value: string }) => m.label || m.value)
+      : [];
+
+    const created = dbProjects.create({
+      id: id ? String(id).trim() : undefined,
+      code: cleanCode,
+      title: cleanTitle,
+      category: category ? String(category).trim() : "Parrainage d'enfants",
+      partner: partner ? String(partner).trim() : 'Église locale',
+      leader: leader ? String(leader).trim() : 'Pasteur Bequel CHERELUS',
+      date: date ? String(date).trim() : new Date().toISOString().split('T')[0],
+      description: description ? String(description).trim() : '',
+      objectives: cleanObjectives,
+      metrics: cleanMetrics,
+      image: image ? String(image).trim() : '',
+      status: cleanStatus,
+      published: published !== false,
+      url: url ? String(url).trim() : '',
+      archived: Boolean(archived)
+    });
+
+    res.status(201).json({
+      success: true,
+      project: created,
+      message: 'Projet enregistré avec succès dans la base de données.'
+    });
+  } catch (err) {
+    console.error('Error creating project:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la création du projet.' });
+  }
+});
+
+app.patch('/api/projects/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const projectId = req.params.id;
+    const existing = dbProjects.getById(projectId);
+    if (!existing) {
+      res.status(404).json({ success: false, error: 'Projet introuvable.' });
+      return;
+    }
+
+    const updates: Record<string, any> = {};
+    if (req.body.title !== undefined) {
+      const cleanTitle = String(req.body.title).trim();
+      if (!cleanTitle) {
+        res.status(400).json({ success: false, error: 'Le titre du projet ne peut pas être vide.' });
+        return;
+      }
+      updates.title = cleanTitle;
+    }
+    if (req.body.code !== undefined) {
+      const cleanCode = String(req.body.code).trim().toUpperCase();
+      if (!cleanCode || !PROJECT_CODE_REGEX.test(cleanCode)) {
+        res.status(400).json({
+          success: false,
+          error: 'Le code du projet est invalide (2 à 32 caractères alphanumériques, ex. : COMP-HA0926).'
+        });
+        return;
+      }
+      if (!dbProjects.isCodeUnique(cleanCode, projectId)) {
+        res.status(400).json({
+          success: false,
+          error: `Le code projet « ${cleanCode} » est déjà utilisé par un autre projet.`
+        });
+        return;
+      }
+      updates.code = cleanCode;
+    }
+    if (req.body.category !== undefined) updates.category = String(req.body.category).trim();
+    if (req.body.partner !== undefined) updates.partner = String(req.body.partner).trim();
+    if (req.body.leader !== undefined) updates.leader = String(req.body.leader).trim();
+    if (req.body.date !== undefined) updates.date = String(req.body.date).trim();
+    if (req.body.description !== undefined) updates.description = String(req.body.description).trim();
+    if (req.body.image !== undefined) updates.image = String(req.body.image).trim();
+    if (req.body.status !== undefined) {
+      const validStatuses: ProjectProgressStatus[] = ['Planifié', 'En attente', 'En cours', 'Terminé'];
+      if (validStatuses.includes(req.body.status)) {
+        updates.status = req.body.status;
+      }
+    }
+    if (req.body.published !== undefined) updates.published = Boolean(req.body.published);
+    if (req.body.archived !== undefined) updates.archived = Boolean(req.body.archived);
+    if (req.body.url !== undefined) {
+      const cleanUrl = String(req.body.url).trim();
+      if (cleanUrl && !/^https?:\/\/\S+\.\S+/i.test(cleanUrl)) {
+        res.status(400).json({ success: false, error: 'Le lien externe doit commencer par http:// ou https://.' });
+        return;
+      }
+      updates.url = cleanUrl;
+    }
+    if (Array.isArray(req.body.objectives)) {
+      updates.objectives = req.body.objectives.map((o: any) => String(o || '').trim()).filter(Boolean);
+    }
+    if (Array.isArray(req.body.metrics)) {
+      updates.metrics = req.body.metrics
+        .map((m: any) => ({ label: String(m?.label || '').trim(), value: String(m?.value || '').trim() }))
+        .filter((m: { label: string; value: string }) => m.label || m.value);
+    }
+
+    const updated = dbProjects.update(projectId, updates);
+    res.json({
+      success: true,
+      project: updated,
+      message: 'Projet mis à jour avec succès.'
+    });
+  } catch (err) {
+    console.error('Error updating project:', err);
+    res.status(500).json({ success: false, error: 'Erreur lors de la mise à jour du projet.' });
+  }
+});
+
+app.put('/api/projects/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const projectId = req.params.id;
+    const cleanCode = String(req.body.code || '').trim().toUpperCase();
+    const cleanTitle = String(req.body.title || '').trim();
+    if (!cleanTitle) {
+      res.status(400).json({ success: false, error: 'Le titre du projet est obligatoire.' });
+      return;
+    }
+    if (!cleanCode || !PROJECT_CODE_REGEX.test(cleanCode)) {
+      res.status(400).json({
+        success: false,
+        error: 'Le code du projet est obligatoire (2 à 32 caractères alphanumériques, ex. : COMP-HA0926).'
+      });
+      return;
+    }
+    if (!dbProjects.isCodeUnique(cleanCode, projectId)) {
+      res.status(400).json({
+        success: false,
+        error: `Le code projet « ${cleanCode} » est déjà utilisé par un autre projet.`
+      });
+      return;
+    }
+
+    const existing = dbProjects.getById(projectId);
+    if (!existing) {
+      res.status(404).json({ success: false, error: 'Projet introuvable.' });
+      return;
+    }
+
+    const updated = dbProjects.update(projectId, {
+      ...req.body,
+      code: cleanCode,
+      title: cleanTitle
+    });
+    res.json({
+      success: true,
+      project: updated,
+      message: 'Projet mis à jour avec succès.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Erreur lors de la mise à jour du projet.' });
+  }
+});
+
+app.patch('/api/projects/:id/code', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const projectId = req.params.id;
+    const cleanCode = String(req.body.code || '').trim().toUpperCase();
+    if (!cleanCode || !PROJECT_CODE_REGEX.test(cleanCode)) {
+      res.status(400).json({
+        success: false,
+        error: 'Format de code invalide. Utilisez 2 à 32 caractères (lettres, chiffres, tirets), ex. : COMP-HA0926.'
+      });
+      return;
+    }
+    if (!dbProjects.isCodeUnique(cleanCode, projectId)) {
+      res.status(400).json({
+        success: false,
+        error: `Le code projet « ${cleanCode} » est déjà utilisé par un autre projet.`
+      });
+      return;
+    }
+    const updated = dbProjects.updateCode(projectId, cleanCode);
+    if (!updated) {
+      res.status(404).json({ success: false, error: 'Projet introuvable.' });
+      return;
+    }
+    res.json({
+      success: true,
+      project: updated,
+      message: `Code du projet mis à jour : ${updated.code}`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Erreur lors de la mise à jour du code du projet.' });
+  }
+});
+
+app.delete('/api/projects/:id', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const ok = dbProjects.delete(req.params.id);
+    if (!ok) {
+      res.status(404).json({ success: false, error: 'Projet introuvable.' });
+      return;
+    }
+    res.json({ success: true, message: 'Projet supprimé avec succès.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Erreur lors de la suppression du projet.' });
   }
 });
 

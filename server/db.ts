@@ -61,10 +61,11 @@ export interface NewsletterCampaign {
 export type PublicationStatus = 'Brouillon' | 'En attente' | 'Publiée' | 'Archivée';
 export type PublicationKind = 'article' | 'annonce' | 'projet';
 export type EditorMode = 'visual' | 'html';
-export type ProjectProgressStatus = 'Planifié' | 'En cours' | 'Terminé';
+export type ProjectProgressStatus = 'Planifié' | 'En attente' | 'En cours' | 'Terminé';
 
 export interface ChurchPublication {
   id: string;
+  code?: string;
   title: string;
   content: string;
   summary: string;
@@ -82,12 +83,36 @@ export interface ChurchPublication {
   hasCustomImage?: boolean;
   
   // Champs spécifiques aux Projets communautaires
-  budget?: string; // ex: "$5,000 USD" ou "250,000 HTG MonCash"
-  targetGoal?: string; // ex: "Approvisionner en eau potable 300 familles"
+  partner?: string;
+  leader?: string;
+  budget?: string;
+  targetGoal?: string;
+  objectives?: string[];
   projectStatus?: ProjectProgressStatus;
-  externalUrl?: string; // Lien externe officiel (ex: Honnold Foundation)
+  published?: boolean;
+  externalUrl?: string;
   pastorQuote?: { text: string; author: string } | string;
   impactMetrics?: { label: string; value: string }[];
+}
+
+export interface SocialProjectRecord {
+  id: string;
+  code: string;
+  title: string;
+  category: string;
+  partner: string;
+  leader: string;
+  date: string;
+  description: string;
+  objectives: string[];
+  metrics: { label: string; value: string }[];
+  image: string;
+  status: ProjectProgressStatus;
+  published: boolean;
+  url: string;
+  archived: boolean;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export type EventStatus = 'Brouillon' | 'Publié' | 'Terminé' | 'Annulé';
@@ -140,8 +165,39 @@ const SUBSCRIBERS_FILE = path.join(DATA_DIR, 'subscribers.json');
 const CAMPAIGNS_FILE = path.join(DATA_DIR, 'campaigns.json');
 const PODCASTS_FILE = path.join(DATA_DIR, 'podcasts.json');
 const PUBLICATIONS_FILE = path.join(DATA_DIR, 'publications.json');
+const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json');
 const EVENTS_FILE = path.join(DATA_DIR, 'events.json');
 const FAQ_FILE = path.join(DATA_DIR, 'faq.json');
+
+export const COMPASSION_DEFAULT_PROJECT: SocialProjectRecord = {
+  id: 'projet-compassion-ha0926',
+  code: 'COMP-HA0926',
+  title: 'Compassion HA0926',
+  category: "Parrainage d'enfants",
+  partner: 'Compassion International',
+  leader: 'Sœur Marie-Carmelle Louis & Direction CDEJ',
+  date: '2019-09-01',
+  description: "Centre d'accueil et de développement holistique des enfants parrainés (CDEJ HA0926) en partenariat avec Compassion International : soutien scolaire, suivi médical régulier, alimentation équilibrée et formation spirituelle pour les enfants et les jeunes de Damé.",
+  objectives: [
+    'Libérer les enfants de la pauvreté au nom de Jésus',
+    "Garantir l'accès à la scolarité, au soutien pédagogique et aux fournitures scolaires",
+    'Assurer des bilans médicaux annuels, les soins de santé et une nutrition équilibrée',
+    'Accompagner spirituellement et socialement les enfants et leurs familles à Damé'
+  ],
+  metrics: [
+    { label: 'Enfants inscrits', value: '250+' },
+    { label: 'Tuteurs et encadreurs', value: '12' },
+    { label: 'Bilans de santé annuels', value: '100%' },
+    { label: 'Année de lancement', value: '2019' }
+  ],
+  image: '/images/comite.jpg',
+  status: 'En cours',
+  published: true,
+  url: '',
+  archived: false,
+  createdAt: '2019-09-01T08:00:00.000Z',
+  updatedAt: '2026-03-01T08:00:00.000Z'
+};
 
 // Ensure directory and files exist
 function initDb() {
@@ -336,36 +392,37 @@ function initDb() {
     fs.writeFileSync(PODCASTS_FILE, JSON.stringify(seedPodcasts, null, 2), 'utf-8');
   }
 
+  // Initialize Projects File (only Compassion HA0926 by default)
+  if (!fs.existsSync(PROJECTS_FILE)) {
+    fs.writeFileSync(PROJECTS_FILE, JSON.stringify([COMPASSION_DEFAULT_PROJECT], null, 2), 'utf-8');
+  }
+
   // Initialize Publications File
   if (!fs.existsSync(PUBLICATIONS_FILE)) {
     const seedPublications: ChurchPublication[] = [
       {
-        id: 'projet-honnold-solaire',
-        title: "Projet d'Énergie Solaire Communautaire à Damé (Partenariat Honnold Foundation)",
-        summary: "En partenariat avec la Honnold Foundation, l'Église du Nazaréen de Damé déploie un programme d'énergie solaire propre pour remplacer les lampes à kérosène toxiques et permettre aux élèves d'étudier en toute sécurité.",
-        content: "En partenariat avec la Honnold Foundation, l'Église du Nazaréen de Damé déploie un programme d'énergie solaire propre pour remplacer les lampes à kérosène toxiques et permettre aux élèves d'étudier en toute sécurité.\n\nCe partenariat d'envergure permet la distribution et l'installation de 100 stations solaires portables de haute qualité au bénéfice direct de plus de 300 écoliers et élèves de Damé. Il garantit un éclairage fiable, propre et sans danger pour leurs études nocturnes, tout en supprimant l'inhalation nocive de fumées de kérosène.\n\nLe projet s'appuie sur une gouvernance communautaire exemplaire avec la mise en place d'un Comité d'Énergie Communautaire composé à 50% de femmes, garantissant une appropriation pérenne et solidaire au sein de notre paroisse et de notre localité.",
-        image: '/images/cour_paysage.jpg',
-        category: 'Projets Sociaux',
-        author: 'Pasteur Bequel CHERELUS, Leader du Projet',
-        date: 'Septembre 2026',
+        id: 'projet-compassion-ha0926',
+        code: 'COMP-HA0926',
+        title: 'Compassion HA0926',
+        summary: COMPASSION_DEFAULT_PROJECT.description,
+        content: COMPASSION_DEFAULT_PROJECT.description,
+        image: COMPASSION_DEFAULT_PROJECT.image,
+        category: COMPASSION_DEFAULT_PROJECT.category,
+        partner: COMPASSION_DEFAULT_PROJECT.partner,
+        leader: COMPASSION_DEFAULT_PROJECT.leader,
+        author: COMPASSION_DEFAULT_PROJECT.leader,
+        date: COMPASSION_DEFAULT_PROJECT.date,
         status: 'Publiée',
+        published: true,
         publicationType: 'projet',
         editorMode: 'visual',
         hasCustomImage: true,
-        budget: 'Partenariat Honnold Foundation',
-        targetGoal: '100 stations solaires portables | 300+ élèves impactés | 50% de femmes dans le Comité d\'Énergie',
-        projectStatus: 'En cours',
-        externalUrl: 'https://www.honnoldfoundation.org/partner/eglise-du-nazareen-de-dame',
-        pastorQuote: {
-          text: "Lorsque nos enfants peuvent étudier en toute sécurité la nuit sans la fumée toxique du kérosène, nous éclairons le chemin pour sortir de la pauvreté et nous construisons un avenir durable grâce à l'unité communautaire.",
-          author: "Pasteur Bequel CHERELUS, Leader du Projet"
-        },
-        impactMetrics: [
-          { label: "Stations solaires portables", value: "100" },
-          { label: "Élèves impactés", value: "300+" },
-          { label: "Femmes au Comité d'Énergie", value: "50%" }
-        ],
-        createdAt: '2026-09-01T08:00:00.000Z'
+        budget: `Partenaire : ${COMPASSION_DEFAULT_PROJECT.partner} (${COMPASSION_DEFAULT_PROJECT.category})`,
+        targetGoal: COMPASSION_DEFAULT_PROJECT.metrics.map(m => `${m.value} ${m.label}`).join(' | '),
+        objectives: COMPASSION_DEFAULT_PROJECT.objectives,
+        projectStatus: COMPASSION_DEFAULT_PROJECT.status,
+        impactMetrics: COMPASSION_DEFAULT_PROJECT.metrics,
+        createdAt: COMPASSION_DEFAULT_PROJECT.createdAt
       },
       {
         id: 'pub-1',
@@ -377,6 +434,7 @@ function initDb() {
         author: 'Pasteur Bequel CHERELUS',
         date: '2026-03-01',
         status: 'Publiée',
+        publicationType: 'article',
         createdAt: new Date(Date.now() - 86400000 * 7).toISOString()
       },
       {
@@ -389,19 +447,8 @@ function initDb() {
         author: 'Direction Pédagogique',
         date: '2026-02-15',
         status: 'Publiée',
+        publicationType: 'article',
         createdAt: new Date(Date.now() - 86400000 * 20).toISOString()
-      },
-      {
-        id: 'pub-3',
-        title: 'Projet Caprin & Soutien Agricole aux Familles Vulnérables',
-        summary: 'Bilan de notre initiative de solidarité et d’autonomisation économique en faveur des cultivateurs et veuves de Damé.',
-        content: 'Grâce au partenariat avec nos bienfaiteurs et la mobilisation du Conseil Paroissial, plus de 60 familles ont reçu des têtes de bétail pour renforcer la sécurité alimentaire de notre localité.',
-        image: '/images/photo1.jpg',
-        category: 'Solidarité',
-        author: 'Comité de Secours et de Développement',
-        date: '2026-01-28',
-        status: 'Publiée',
-        createdAt: new Date(Date.now() - 86400000 * 40).toISOString()
       }
     ];
     fs.writeFileSync(PUBLICATIONS_FILE, JSON.stringify(seedPublications, null, 2), 'utf-8');
@@ -814,6 +861,144 @@ export const dbSubscribers = {
     const header = 'ID,Nom,Email,Téléphone,Date Inscription,Statut,Source\n';
     const rows = items.map(i => `"${i.id}","${i.name}","${i.email}","${i.phone || ''}","${i.subscribedAt}","${i.status}","${i.source || 'Newsletter du site'}"`).join('\n');
     return header + rows;
+  }
+};
+
+// Projects API (Social & Community Projects)
+export const dbProjects = {
+  getAll: (includeUnpublished: boolean = true, includeArchived: boolean = true, search?: string): SocialProjectRecord[] => {
+    let items = readJson<SocialProjectRecord[]>(PROJECTS_FILE);
+    if (!includeUnpublished) {
+      items = items.filter(p => p.published !== false);
+    }
+    if (!includeArchived) {
+      items = items.filter(p => !p.archived);
+    }
+    if (search && search.trim()) {
+      const q = search.toLowerCase().trim();
+      items = items.filter(p =>
+        (p.code && p.code.toLowerCase().includes(q)) ||
+        p.title.toLowerCase().includes(q) ||
+        (p.description && p.description.toLowerCase().includes(q)) ||
+        (p.partner && p.partner.toLowerCase().includes(q)) ||
+        (p.category && p.category.toLowerCase().includes(q)) ||
+        (p.leader && p.leader.toLowerCase().includes(q))
+      );
+    }
+    return items;
+  },
+
+  getById: (id: string): SocialProjectRecord | undefined => {
+    const items = readJson<SocialProjectRecord[]>(PROJECTS_FILE);
+    return items.find(p => p.id === id);
+  },
+
+  getByCode: (code: string): SocialProjectRecord | undefined => {
+    const clean = String(code || '').trim().toUpperCase();
+    if (!clean) return undefined;
+    const items = readJson<SocialProjectRecord[]>(PROJECTS_FILE);
+    return items.find(p => String(p.code || '').trim().toUpperCase() === clean);
+  },
+
+  isCodeUnique: (code: string, excludeId?: string): boolean => {
+    const clean = String(code || '').trim().toUpperCase();
+    if (!clean) return false;
+    const items = readJson<SocialProjectRecord[]>(PROJECTS_FILE);
+    return !items.some(p => p.id !== excludeId && String(p.code || '').trim().toUpperCase() === clean);
+  },
+
+  create: (project: Omit<SocialProjectRecord, 'id' | 'createdAt'> & { id?: string }): SocialProjectRecord => {
+    const items = readJson<SocialProjectRecord[]>(PROJECTS_FILE);
+    const now = new Date().toISOString();
+    const newProject: SocialProjectRecord = {
+      ...project,
+      id: project.id || `proj-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      code: String(project.code || '').trim().toUpperCase(),
+      objectives: Array.isArray(project.objectives) ? project.objectives : [],
+      metrics: Array.isArray(project.metrics) ? project.metrics : [],
+      published: project.published !== false,
+      archived: Boolean(project.archived),
+      createdAt: now,
+      updatedAt: now
+    };
+    items.unshift(newProject);
+    writeJson(PROJECTS_FILE, items);
+    dbProjects.syncToPublications(items);
+    return newProject;
+  },
+
+  update: (id: string, updates: Partial<SocialProjectRecord>): SocialProjectRecord | null => {
+    const items = readJson<SocialProjectRecord[]>(PROJECTS_FILE);
+    const idx = items.findIndex(p => p.id === id);
+    if (idx === -1) return null;
+    items[idx] = {
+      ...items[idx],
+      ...updates,
+      code: updates.code !== undefined ? String(updates.code).trim().toUpperCase() : items[idx].code,
+      updatedAt: new Date().toISOString()
+    };
+    writeJson(PROJECTS_FILE, items);
+    dbProjects.syncToPublications(items);
+    return items[idx];
+  },
+
+  updateCode: (id: string, newCode: string): SocialProjectRecord | null => {
+    const cleanCode = String(newCode || '').trim().toUpperCase();
+    if (!cleanCode) return null;
+    return dbProjects.update(id, { code: cleanCode });
+  },
+
+  delete: (id: string): boolean => {
+    const items = readJson<SocialProjectRecord[]>(PROJECTS_FILE);
+    const filtered = items.filter(p => p.id !== id);
+    if (filtered.length === items.length) return false;
+    writeJson(PROJECTS_FILE, filtered);
+    dbProjects.syncToPublications(filtered);
+    return true;
+  },
+
+  syncAll: (projects: SocialProjectRecord[]): SocialProjectRecord[] => {
+    writeJson(PROJECTS_FILE, projects);
+    dbProjects.syncToPublications(projects);
+    return projects;
+  },
+
+  syncToPublications: (projects: SocialProjectRecord[]) => {
+    try {
+      const pubs = readJson<ChurchPublication[]>(PUBLICATIONS_FILE);
+      const nonProjects = pubs.filter(p => p.publicationType !== 'projet');
+      const mappedProjects: ChurchPublication[] = projects
+        .filter(p => !p.archived)
+        .map(p => ({
+          id: p.id,
+          code: p.code,
+          title: p.title,
+          summary: p.description,
+          content: p.description,
+          image: p.image || '',
+          category: p.category || 'Projets Sociaux',
+          partner: p.partner || 'Église locale',
+          leader: p.leader || 'Pasteur Bequel CHERELUS',
+          author: p.leader || 'Pasteur Bequel CHERELUS',
+          date: p.date || new Date().toISOString().split('T')[0],
+          status: p.published !== false ? 'Publiée' : 'Brouillon',
+          published: p.published !== false,
+          publicationType: 'projet',
+          editorMode: 'visual',
+          hasCustomImage: Boolean(p.image && p.image.trim() !== ''),
+          budget: p.partner ? `Partenaire : ${p.partner}${p.category ? ` (${p.category})` : ''}` : p.category,
+          targetGoal: p.metrics && p.metrics.length > 0 ? p.metrics.map(m => `${m.value} ${m.label}`).join(' | ') : undefined,
+          objectives: p.objectives || [],
+          projectStatus: p.status || 'En cours',
+          externalUrl: p.url || undefined,
+          impactMetrics: p.metrics || [],
+          createdAt: p.createdAt || new Date().toISOString(),
+          updatedAt: p.updatedAt
+        }));
+      writeJson(PUBLICATIONS_FILE, [...mappedProjects, ...nonProjects]);
+    } catch {
+      // ignore sync error
+    }
   }
 };
 
