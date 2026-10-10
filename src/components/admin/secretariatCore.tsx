@@ -13,11 +13,24 @@ export const AUTH_KEY = "end_secretariat_auth";
 
 /* ────────────────────────────── Types ────────────────────────────── */
 
-export type Status = "En cours" | "En attente" | "Terminé";
+export type Status = "En cours" | "En attente" | "Terminé" | "Planifié";
 export interface Metric { label: string; value: string }
 export interface Project {
-  id: string; title: string; category: string; partner: string; leader: string;
-  description: string; status: Status; url: string; metrics: Metric[]; archived: boolean;
+  id: string;
+  code: string;
+  title: string;
+  category: string;
+  partner: string;
+  leader: string;
+  description: string;
+  objectives: string[];
+  status: Status;
+  date: string;
+  image: string;
+  url: string;
+  metrics: Metric[];
+  published: boolean;
+  archived: boolean;
 }
 export interface Member { id: string; name: string; phone: string; ministry: string; baptismDate: string }
 export interface EventItem {
@@ -180,15 +193,20 @@ export function parseMembersCsv(csvText: string): Omit<Member, "id">[] {
 export function exportProjectsToCsv(list: Project[], delimiter: ";" | "," = ";"): string {
   const cell = (s: string) => `"${String(s ?? "").replace(/"/g, '""')}"`;
   const rows = [
-    ["N°", "Titre du projet", "Catégorie", "Partenaire", "Responsable", "Statut", "Indicateurs d'impact", "Lien externe", "Archivé"],
+    ["N°", "Code du projet", "Titre du projet", "Catégorie", "Partenaire", "Responsable", "Statut", "Date", "Publié", "Objectifs", "Indicateurs d'impact", "Image", "Lien externe", "Archivé"],
     ...list.map((p, idx) => [
       String(idx + 1),
+      p.code || "—",
       p.title,
       p.category,
       p.partner,
       p.leader || "—",
       p.status,
-      p.metrics.map((m) => `${m.label}: ${m.value}`).join(" | "),
+      p.date || "—",
+      p.published !== false ? "Oui" : "Non",
+      (p.objectives || []).join(" | "),
+      (p.metrics || []).map((m) => `${m.label}: ${m.value}`).join(" | "),
+      p.image || "",
       p.url || "",
       p.archived ? "Oui" : "Non",
     ]),
@@ -243,12 +261,119 @@ export function exportDocsToCsv(list: IssuedDoc[], delimiter: ";" | "," = ";"): 
 /** Fichiers audio choisis depuis l'appareil : disponibles pendant la session seulement. */
 export const localAudioUrls: Record<string, string> = {};
 
+const LEGACY_REMOVED_PROJECT_IDS = new Set([
+  "projet-honnold-solaire",
+  "energie-solaire-honnold",
+  "elevage-caprin",
+  "micro-credit-femmes",
+  "eau-potable-citerne",
+  "pub-seed-2",
+]);
+
+export function isLegacyRemovedProject(p: any): boolean {
+  if (!p) return false;
+  if (LEGACY_REMOVED_PROJECT_IDS.has(String(p.id || ""))) return true;
+  const title = String(p.title || "").toLowerCase();
+  const partner = String(p.partner || "").toLowerCase();
+  if (
+    title.includes("honnold") ||
+    title.includes("solaire communautaire") ||
+    title.includes("élevage caprin") ||
+    title.includes("elevage caprin") ||
+    title.includes("micro-crédit des femmes") ||
+    title.includes("autonomisation économique des femmes") ||
+    title.includes("eau potable & citerne") ||
+    partner === "honnold" ||
+    partner === "digicel"
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function normalizeProjectItem(p: any, idx = 0): Project {
+  const isCompassion =
+    p?.id === "projet-compassion-ha0926" ||
+    p?.id === "cdej-compassion" ||
+    String(p?.title || "").toLowerCase().includes("compassion") ||
+    String(p?.code || "").toUpperCase() === "COMP-HA0926";
+
+  const defaultComp = COMPASSION_PROJECT_DEFAULT;
+  return {
+    id: isCompassion ? defaultComp.id : String(p?.id || uid()),
+    code: String(p?.code || (isCompassion ? defaultComp.code : `PROJ-${new Date().getFullYear()}-${pad(idx + 1)}`)).trim().toUpperCase(),
+    title: String(p?.title || (isCompassion ? defaultComp.title : "Projet sans titre")).trim(),
+    category: String(p?.category || (isCompassion ? defaultComp.category : "Développement social")).trim(),
+    partner: String(p?.partner || (isCompassion ? defaultComp.partner : "Église locale")).trim(),
+    leader: String(p?.leader || (isCompassion ? defaultComp.leader : PASTOR)).trim(),
+    description: String(p?.description || (isCompassion ? defaultComp.description : "")).trim(),
+    objectives: Array.isArray(p?.objectives) && p.objectives.length > 0
+      ? p.objectives.map((o: any) => String(o || "").trim()).filter(Boolean)
+      : isCompassion
+        ? [...defaultComp.objectives]
+        : [],
+    status: (["En cours", "En attente", "Terminé", "Planifié"].includes(p?.status) ? p.status : "En cours") as Status,
+    date: String(p?.date || (isCompassion ? defaultComp.date : todayISO())).trim(),
+    image: String(p?.image ?? (isCompassion ? defaultComp.image : "/images/comite.jpg")).trim(),
+    url: String(p?.url || "").trim(),
+    metrics: Array.isArray(p?.metrics) && p.metrics.length > 0
+      ? p.metrics
+          .map((m: any) => ({ label: String(m?.label || "").trim(), value: String(m?.value || "").trim() }))
+          .filter((m: Metric) => m.label && m.value)
+      : isCompassion
+        ? [...defaultComp.metrics]
+        : [],
+    published: typeof p?.published === "boolean" ? p.published : true,
+    archived: Boolean(p?.archived),
+  };
+}
+
+export function cleanProjectsArray(rawList: any[]): Project[] {
+  const cleanedFlag = typeof window !== "undefined" ? localStorage.getItem("end_sec_projects_cleaned_ha0926") : "1";
+  let filtered = Array.isArray(rawList) ? rawList : [];
+  if (!cleanedFlag) {
+    filtered = filtered.filter((p) => !isLegacyRemovedProject(p));
+    try {
+      localStorage.setItem("end_sec_projects_cleaned_ha0926", "1");
+      // Aussi nettoyer l'ancien cache de publications locales
+      const rawPubs = localStorage.getItem("dame_local_publications_backup");
+      if (rawPubs) {
+        const parsedPubs = JSON.parse(rawPubs);
+        if (Array.isArray(parsedPubs)) {
+          const cleanPubs = parsedPubs.filter((pub) => !isLegacyRemovedProject(pub));
+          localStorage.setItem("dame_local_publications_backup", JSON.stringify(cleanPubs));
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  const normalized = filtered.map((p, i) => normalizeProjectItem(p, i));
+  // Dédoublonner par id ou code COMP-HA0926
+  const seenIds = new Set<string>();
+  const deduped: Project[] = [];
+  for (const item of normalized) {
+    if (!seenIds.has(item.id)) {
+      seenIds.add(item.id);
+      deduped.push(item);
+    }
+  }
+  if (deduped.length === 0 && !cleanedFlag) {
+    return seedProjects();
+  }
+  return deduped;
+}
+
 /** localStorage avec try/catch et notification live vers les vues publiques. */
 export function useStored<T>(key: string, initial: T | (() => T)) {
   const [value, setValue] = useState<T>(() => {
     try {
       const raw = localStorage.getItem(key);
-      if (raw) return JSON.parse(raw) as T;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (key === "end_sec_projects" && Array.isArray(parsed)) {
+          return cleanProjectsArray(parsed) as unknown as T;
+        }
+        return parsed as T;
+      }
     } catch { /* ignore */ }
     return typeof initial === "function" ? (initial as () => T)() : initial;
   });
@@ -301,6 +426,9 @@ const ICONS: Record<string, string> = {
   restore: "M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5",
   mail: "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 6l-10 7L2 6",
   send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
+  code: "M16 18l6-6-6-6M8 6l-6 6 6 6",
+  image: "M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM21 15l-5-5L5 21",
+  target: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
 };
 
 export function Icon({ name, size = 18, className = "" }: { name: string; size?: number; className?: string }) {
@@ -656,19 +784,36 @@ export function EmptyState({ title, hint, children }: { title: string; hint: str
 
 /* ────────────────────────────── Données d'exemple ────────────────────────────── */
 
+export const COMPASSION_PROJECT_DEFAULT: Project = {
+  id: "projet-compassion-ha0926",
+  code: "COMP-HA0926",
+  title: "Compassion HA0926",
+  category: "Parrainage d'enfants",
+  partner: "Compassion International",
+  leader: "Sœur Marie-Carmelle Louis",
+  description: "Centre d'accueil et de développement holistique des enfants parrainés (CDEJ HA0926) en partenariat avec Compassion International : soutien scolaire, suivi médical et nutritionnel, activités socio-éducatives et formation spirituelle.",
+  objectives: [
+    "Assurer le suivi scolaire, pédagogique et la fourniture de matériel didactique pour chaque enfant inscrit.",
+    "Garantir un bilan médical annuel, des soins préventifs et un accompagnement nutritionnel régulier.",
+    "Offrir un encadrement spirituel et moral fondé sur les valeurs bibliques et l'amour du prochain.",
+    "Accompagner les parents et tuteurs dans la protection et l'épanouissement familial des enfants."
+  ],
+  status: "En cours",
+  date: "2019-09-01",
+  image: "/images/comite.jpg",
+  url: "",
+  metrics: [
+    { label: "Enfants parrainés", value: "250+" },
+    { label: "Domaines d'action", value: "4" },
+    { label: "Tuteurs & Encadreurs", value: "12" },
+    { label: "Suivi médical & scolaire", value: "100%" }
+  ],
+  published: true,
+  archived: false,
+};
+
 export const seedProjects = (): Project[] => [
-  { id: "projet-honnold-solaire", title: "Projet d'Énergie Solaire Communautaire à Damé (Partenariat Honnold Foundation)", category: "Énergie", partner: "Honnold", leader: "Pasteur Bequel CHERELUS, Leader du Projet",
-    description: "En partenariat avec la Honnold Foundation, l'Église du Nazaréen de Damé déploie un programme d'énergie solaire propre pour remplacer les lampes à kérosène toxiques et permettre aux élèves d'étudier en toute sécurité.",
-    status: "En cours", url: "https://www.honnoldfoundation.org/partner/eglise-du-nazareen-de-dame", metrics: [{ label: "Stations solaires portables", value: "100" }, { label: "Élèves impactés", value: "300+" }, { label: "Femmes dans le Comité d'Énergie", value: "50%" }], archived: false },
-  { id: uid(), title: "Élevage caprin communautaire", category: "Agriculture / Élevage", partner: "Église locale", leader: "Frère Samuel Jean-Baptiste",
-    description: "Distribution de chèvres à des familles du quartier, avec formation à l'élevage et suivi vétérinaire.",
-    status: "En cours", url: "", metrics: [{ label: "Familles bénéficiaires", value: "18" }, { label: "Chèvres distribuées", value: "40" }], archived: false },
-  { id: uid(), title: "Compassion HA0926", category: "Parrainage d'enfants", partner: "Compassion", leader: "Sœur Marie-Carmelle Louis",
-    description: "Centre d'accueil et de développement des enfants parrainés : soutien scolaire, santé, formation spirituelle.",
-    status: "En cours", url: "", metrics: [{ label: "Enfants inscrits", value: "150" }, { label: "Tuteurs", value: "12" }], archived: false },
-  { id: uid(), title: "Micro-crédit des femmes", category: "Économie / Microcrédit", partner: "Digicel", leader: "Sœur Nadège Pierre",
-    description: "Petits prêts et accompagnement pour les femmes qui lancent ou développent une activité commerciale.",
-    status: "En attente", url: "", metrics: [{ label: "Bénéficiaires visées", value: "40" }], archived: false },
+  { ...COMPASSION_PROJECT_DEFAULT, objectives: [...COMPASSION_PROJECT_DEFAULT.objectives], metrics: COMPASSION_PROJECT_DEFAULT.metrics.map(m => ({ ...m })) },
 ];
 
 export const seedMembers = (): Member[] => [
@@ -704,7 +849,7 @@ export const seedSermons = (): Sermon[] => [
 export const seedAnnouncements = (): Announcement[] => [
   { id: uid(), title: "Répétition de la chorale", content: "La chorale se réunit chaque samedi à 16h00 dans l'église. Nouveaux membres bienvenus.", date: addDays(-2), priority: "Normale", published: true },
   { id: uid(), title: "Convention : inscriptions ouvertes", content: "Les délégations des églises sœurs peuvent s'inscrire auprès du secrétariat avant la convention.", date: addDays(-1), priority: "Importante", published: true },
-  { id: uid(), title: "Collecte pour le projet solaire", content: "Une offrande spéciale sera reçue dimanche pour soutenir le projet solaire.", date: addDays(0), priority: "Normale", published: false },
+  { id: uid(), title: "Rencontre des parents — Compassion HA0926", content: "Réunion d'information et de suivi avec les parents et tuteurs des enfants inscrits au centre CDEJ HA0926.", date: addDays(0), priority: "Normale", published: false },
 ];
 
 export const seedDocs = (): IssuedDoc[] => {

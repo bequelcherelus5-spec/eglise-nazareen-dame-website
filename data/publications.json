@@ -17,7 +17,7 @@
     "editorMode": "visual",
     "hasCustomImage": true,
     "budget": "Partenaire : Compassion International (Parrainage d'enfants)",
-    "targetGoal": "250+ Enfants inscrits | 12 Tuteurs et encadreurs | 100% Bilans de santé annuels",
+    "targetGoal": "250+ Enfants inscrits | 12 Tuteurs et encadreurs | 100% Bilans de santé annuels | 2019 Année de lancement",
     "objectives": [
       "Libérer les enfants de la pauvreté au nom de Jésus",
       "Garantir l'accès à la scolarité, au soutien pédagogique et aux fournitures scolaires",
@@ -43,7 +43,8 @@
         "value": "2019"
       }
     ],
-    "createdAt": "2019-09-01T08:00:00.000Z"
+    "createdAt": "2019-09-01T08:00:00.000Z",
+    "updatedAt": "2026-03-01T08:00:00.000Z"
   },
   {
     "id": "pub-1",

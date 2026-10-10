@@ -38,6 +38,7 @@ import {
   Notify,
   SectionId,
   uid,
+  pad,
   todayISO,
   fmtDate,
   isHttpUrl,
@@ -86,6 +87,7 @@ import {
   seedAnnouncements,
   seedDocs,
 } from "./secretariatCore";
+import { apiService } from "../../services/apiService";
 import NewsletterManager from "./NewsletterManager";
 
 export type {
@@ -152,9 +154,6 @@ function LoginGate({ password, onSuccess, onBackToSite }: { password: string; on
             </button>
           )}
         </form>
-        <p className="mt-5 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">
-          Mot de passe par défaut : <code className="font-mono font-semibold">{DEFAULT_PASSWORD}</code>. Pensez à le personnaliser.
-        </p>
       </div>
       <p className="text-center text-xs text-slate-300">{SITE}</p>
     </div>
@@ -186,11 +185,11 @@ function DashboardView({
 
   const shortcuts: { label: string; hint: string; icon: string; to: SectionId }[] = [
     { label: "Rédiger un document officiel", hint: "Baptême, recommandation, attestation, invitation", icon: "file", to: "documents" },
-    { label: "Ajouter ou mettre à jour un projet", hint: "Solaire, chèvres, Compassion, micro-crédit…", icon: "folder", to: "projets" },
-    { label: "Inscrire un membre", hint: "Registre des membres et ministères", icon: "users", to: "membres" },
+    { label: "Ajouter ou mettre à jour un projet", hint: "Compassion HA0926, codes projets, objectifs et statistiques…", icon: "folder", to: "projets" },
+    { label: "Inscrire un membre", hint: "Registre des membres et ministères", icon: "users", iconTo: "membres" } as any,
     { label: "Programmer un culte ou un événement", hint: "Calendrier de l'église", icon: "calendar", to: "agenda" },
     { label: "Newsletter & Messagerie (Brevo)", hint: "Gérer les abonnés et envoyer une lettre pastorale", icon: "mail", to: "newsletter" },
-  ];
+  ].map(s => ({ ...s, to: (s.to || (s as any).iconTo) as SectionId }));
 
   return (
     <div className="space-y-6">
@@ -294,24 +293,42 @@ function DashboardView({
 
 /* ────────────────────────────── 2. Projets sociaux ────────────────────────────── */
 
-const CATEGORIES = ["Énergie", "Agriculture / Élevage", "Parrainage d'enfants", "Économie / Microcrédit", "Santé", "Éducation", "Autre"];
-const PARTNERS = ["Honnold", "Compassion", "Digicel", "Église locale", "Autre"];
-const STATUSES: Status[] = ["En cours", "En attente", "Terminé"];
+const CATEGORIES = ["Parrainage d'enfants", "Éducation", "Santé", "Développement social", "Agriculture / Élevage", "Économie / Microcrédit", "Énergie", "Autre"];
+const PARTNERS = ["Compassion International", "Église locale", "Autre"];
+const STATUSES: Status[] = ["En cours", "Planifié", "En attente", "Terminé"];
 const STATUS_STYLE: Record<Status, string> = {
   "En cours": "bg-emerald-50 text-emerald-800 ring-emerald-200",
+  "Planifié": "bg-sky-50 text-sky-800 ring-sky-200",
   "En attente": "bg-amber-50 text-amber-800 ring-amber-200",
   "Terminé": "bg-slate-100 text-slate-700 ring-slate-200",
 };
 const PARTNER_STYLE: Record<string, string> = {
-  Honnold: "bg-amber-50 text-amber-900 ring-amber-300",
+  "Compassion International": "bg-sky-50 text-sky-900 ring-sky-200",
   Compassion: "bg-sky-50 text-sky-900 ring-sky-200",
-  Digicel: "bg-rose-50 text-rose-900 ring-rose-200",
   "Église locale": "bg-[#1B2A4A]/10 text-[#1B2A4A] ring-[#1B2A4A]/20",
 };
+const PRESET_PROJECT_IMAGES = [
+  { label: "Comité & CDEJ", path: "/images/comite.jpg" },
+  { label: "Façade École", path: "/images/ecole_facade.jpg" },
+  { label: "Sanctuaire Damé", path: "/images/dame_facade.jpg" },
+  { label: "Cour & Communauté", path: "/images/cour_paysage.jpg" },
+];
 
-const emptyProject = (): Omit<Project, "id"> => ({
-  title: "", category: CATEGORIES[0], partner: "Église locale", leader: "",
-  description: "", status: "En cours", url: "", metrics: [{ label: "", value: "" }], archived: false,
+const emptyProject = (existingCount = 0): Omit<Project, "id"> => ({
+  code: `PROJ-${new Date().getFullYear()}-${pad(existingCount + 1)}`,
+  title: "",
+  category: CATEGORIES[0],
+  partner: "Compassion International",
+  leader: PASTOR,
+  description: "",
+  objectives: [""],
+  status: "En cours",
+  date: todayISO(),
+  image: "/images/comite.jpg",
+  url: "",
+  metrics: [{ label: "", value: "" }],
+  published: true,
+  archived: false,
 });
 
 function ProjectsView({ projects, setProjects, notify }: {
@@ -323,45 +340,197 @@ function ProjectsView({ projects, setProjects, notify }: {
   const [view, setView] = useState<"cards" | "table">("cards");
   const [editing, setEditing] = useState<Project | null>(null);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<Omit<Project, "id">>(emptyProject);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<Omit<Project, "id">>(() => emptyProject(projects.length));
   const [err, setErr] = useState<Record<string, string>>({});
   const [toDelete, setToDelete] = useState<Project | null>(null);
 
-  const openNew = () => { setForm(emptyProject()); setErr({}); setEditing(null); setCreating(true); };
+  // État dédié pour l'édition directe du "Code du projet" par projet
+  const [codeDrafts, setCodeDrafts] = useState<Record<string, string>>({});
+  const [savingCodeId, setSavingCodeId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCodeDrafts((prev) => {
+      const next: Record<string, string> = {};
+      for (const p of projects) {
+        next[p.id] = prev[p.id] !== undefined ? prev[p.id] : (p.code || "COMP-HA0926");
+      }
+      return next;
+    });
+  }, [projects]);
+
+  const validateProjectCode = (rawCode: string, currentId?: string): string | null => {
+    const clean = rawCode.trim().toUpperCase();
+    if (!clean) return "Le code du projet est obligatoire (ex. : COMP-HA0926).";
+    if (!/^[A-Z0-9-_]{2,32}$/.test(clean)) {
+      return "Format invalide : utilisez 2 à 32 caractères (lettres, chiffres, tirets), ex. COMP-HA0926.";
+    }
+    const duplicate = projects.find((p) => p.id !== currentId && (p.code || "").trim().toUpperCase() === clean);
+    if (duplicate) {
+      return `Ce code « ${clean} » est déjà attribué au projet « ${duplicate.title} ». Chaque projet doit avoir un code unique.`;
+    }
+    return null;
+  };
+
+  const handleSaveDirectCode = async (project: Project) => {
+    const rawDraft = codeDrafts[project.id] ?? project.code ?? "";
+    const cleanCode = rawDraft.trim().toUpperCase();
+    const validationError = validateProjectCode(cleanCode, project.id);
+    if (validationError) {
+      notify(validationError, "error");
+      return;
+    }
+
+    setSavingCodeId(project.id);
+    try {
+      const res = await apiService.updateProjectCode(project.id, cleanCode);
+      if (!res.success && res.error) {
+        notify(res.error, "error");
+        return;
+      }
+      setProjects((list) =>
+        list.map((item) => (item.id === project.id ? { ...item, code: cleanCode } : item))
+      );
+      setCodeDrafts((prev) => ({ ...prev, [project.id]: cleanCode }));
+      notify(`Code du projet mis à jour et enregistré : ${cleanCode}`);
+    } catch {
+      notify("Erreur lors de l'enregistrement du code du projet.", "error");
+    } finally {
+      setSavingCodeId(null);
+    }
+  };
+
+  const openNew = () => {
+    setForm(emptyProject(projects.length));
+    setErr({});
+    setEditing(null);
+    setCreating(true);
+  };
+
   const openEdit = (p: Project) => {
     setForm({
-      title: p.title, category: p.category, partner: p.partner, leader: p.leader,
-      description: p.description, status: p.status, url: p.url,
-      metrics: p.metrics.length ? p.metrics.map((m) => ({ ...m })) : [{ label: "", value: "" }],
-      archived: p.archived,
+      code: p.code || "COMP-HA0926",
+      title: p.title,
+      category: p.category || CATEGORIES[0],
+      partner: p.partner || "Compassion International",
+      leader: p.leader || PASTOR,
+      description: p.description || "",
+      objectives: p.objectives && p.objectives.length > 0 ? [...p.objectives] : [""],
+      status: p.status || "En cours",
+      date: p.date || todayISO(),
+      image: p.image || "/images/comite.jpg",
+      url: p.url || "",
+      metrics: p.metrics && p.metrics.length > 0 ? p.metrics.map((m) => ({ ...m })) : [{ label: "", value: "" }],
+      published: p.published !== false,
+      archived: Boolean(p.archived),
     });
-    setErr({}); setEditing(p); setCreating(true);
+    setErr({});
+    setEditing(p);
+    setCreating(true);
   };
 
-  const save = (ev: React.FormEvent) => {
+  const handleImageFileUpload = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      notify("L'image dépasse 2 Mo. Veuillez choisir une image plus légère.", "error");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setForm((f) => ({ ...f, image: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const save = async (ev: React.FormEvent) => {
     ev.preventDefault();
     const e: Record<string, string> = {};
+    const codeErr = validateProjectCode(form.code, editing?.id);
+    if (codeErr) e.code = codeErr;
     if (!form.title.trim()) e.title = "Le titre du projet est obligatoire.";
+    if (!form.description.trim()) e.description = "La description du projet est obligatoire.";
+    if (!form.partner.trim()) e.partner = "Le nom du partenaire est obligatoire.";
+    if (!form.date.trim()) e.date = "La date du projet est obligatoire.";
     if (form.url.trim() && !isHttpUrl(form.url.trim())) e.url = "Lien invalide : commencez par https://";
-    if (Object.keys(e).length) { setErr(e); return; }
+    if (Object.keys(e).length) {
+      setErr(e);
+      return;
+    }
+
+    const cleanCode = form.code.trim().toUpperCase();
     const clean: Omit<Project, "id"> = {
       ...form,
-      title: form.title.trim(), leader: form.leader.trim(), description: form.description.trim(), url: form.url.trim(),
-      metrics: form.metrics.filter((m) => m.label.trim() || m.value.trim()).map((m) => ({ label: m.label.trim(), value: m.value.trim() })),
+      code: cleanCode,
+      title: form.title.trim(),
+      category: form.category.trim() || "Développement social",
+      partner: form.partner.trim(),
+      leader: form.leader.trim() || PASTOR,
+      description: form.description.trim(),
+      objectives: form.objectives.map((o) => o.trim()).filter(Boolean),
+      date: form.date.trim() || todayISO(),
+      image: form.image.trim() || "/images/comite.jpg",
+      url: form.url.trim(),
+      metrics: form.metrics
+        .filter((m) => m.label.trim() || m.value.trim())
+        .map((m) => ({ label: m.label.trim(), value: m.value.trim() })),
     };
-    if (editing) {
-      setProjects((list) => list.map((p) => (p.id === editing.id ? { id: editing.id, ...clean } : p)));
-      notify("Projet mis à jour.");
-    } else {
-      setProjects((list) => [{ id: uid(), ...clean }, ...list]);
-      notify("Nouveau projet enregistré.");
+
+    setSaving(true);
+    try {
+      if (editing) {
+        const res = await apiService.updateSocialProject(editing.id, clean);
+        if (!res.success && res.error) {
+          setErr({ code: res.error });
+          setSaving(false);
+          return;
+        }
+        const updatedProject: Project = { id: editing.id, ...clean };
+        setProjects((list) => list.map((p) => (p.id === editing.id ? updatedProject : p)));
+        setCodeDrafts((prev) => ({ ...prev, [editing.id]: cleanCode }));
+        notify(`Projet « ${clean.title} » (${cleanCode}) mis à jour dans la base de données.`);
+      } else {
+        const res = await apiService.createSocialProject(clean);
+        if (!res.success && res.error) {
+          setErr({ code: res.error });
+          setSaving(false);
+          return;
+        }
+        const newProj: Project = res.project || { id: uid(), ...clean };
+        setProjects((list) => [newProj, ...list]);
+        setCodeDrafts((prev) => ({ ...prev, [newProj.id]: newProj.code }));
+        notify(`Nouveau projet « ${newProj.title} » (${newProj.code}) créé et enregistré.`);
+      }
+      setCreating(false);
+      setEditing(null);
+    } finally {
+      setSaving(false);
     }
-    setCreating(false); setEditing(null);
   };
 
-  const toggleArchive = (p: Project) => {
-    setProjects((list) => list.map((x) => (x.id === p.id ? { ...x, archived: !x.archived } : x)));
+  const togglePublish = async (p: Project) => {
+    const nextPublished = p.published === false ? true : false;
+    await apiService.updateSocialProject(p.id, { published: nextPublished });
+    setProjects((list) => list.map((x) => (x.id === p.id ? { ...x, published: nextPublished } : x)));
+    notify(nextPublished ? `Projet « ${p.title} » publié sur le site public.` : `Projet « ${p.title} » dépublié (brouillon).`);
+  };
+
+  const toggleArchive = async (p: Project) => {
+    const nextArchived = !p.archived;
+    await apiService.updateSocialProject(p.id, { archived: nextArchived });
+    setProjects((list) => list.map((x) => (x.id === p.id ? { ...x, archived: nextArchived } : x)));
     notify(p.archived ? "Projet restauré." : "Projet archivé.");
+  };
+
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    const target = toDelete;
+    await apiService.deleteSocialProject(target.id);
+    setProjects((l) => l.filter((x) => x.id !== target.id));
+    setToDelete(null);
+    notify(`Projet « ${target.title} » (${target.code}) supprimé de la base de données.`);
   };
 
   const filtered = useMemo(() => {
@@ -370,16 +539,21 @@ function ProjectsView({ projects, setProjects, notify }: {
       if (p.archived !== showArchived) return false;
       if (statusFilter !== "Tous" && p.status !== statusFilter) return false;
       if (!s) return true;
-      return [p.title, p.category, p.partner, p.leader, p.description].some((x) => x.toLowerCase().includes(s));
+      return [p.code, p.title, p.category, p.partner, p.leader, p.description, ...(p.objectives || [])].some((x) =>
+        String(x || "").toLowerCase().includes(s)
+      );
     });
   }, [projects, q, statusFilter, showArchived]);
 
   const setMetric = (i: number, key: "label" | "value", val: string) =>
     setForm((f) => ({ ...f, metrics: f.metrics.map((m, idx) => (idx === i ? { ...m, [key]: val } : m)) }));
 
+  const setObjective = (i: number, val: string) =>
+    setForm((f) => ({ ...f, objectives: f.objectives.map((o, idx) => (idx === i ? val : o)) }));
+
   return (
-    <div>
-      <SectionHeader title="Projets sociaux" subtitle="Suivez les projets communautaires, leurs partenaires et leurs indicateurs d'impact.">
+    <div className="space-y-6">
+      <SectionHeader title="Projets sociaux" subtitle="Gérez les projets communautaires, le code du projet, les partenaires, objectifs et statistiques d'impact.">
         <button
           type="button"
           onClick={() => {
@@ -394,8 +568,76 @@ function ProjectsView({ projects, setProjects, notify }: {
         <button type="button" onClick={openNew} className={btnPrimary}><Icon name="plus" size={16} />Nouveau projet</button>
       </SectionHeader>
 
-      <div className={`${cardCls} mb-5 flex flex-wrap items-center gap-3 p-4`}>
-        <SearchBox value={q} onChange={setQ} placeholder="Rechercher un projet, un partenaire, un responsable…" />
+      {/* SECTION DÉDIÉE : Code du projet */}
+      <div className="rounded-2xl border-2 border-[#9A7B2F]/40 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1B2A4A] text-[#E3C878]">
+              <Icon name="code" size={20} />
+            </span>
+            <div>
+              <h3 className="es-serif text-lg font-semibold text-[#1B2A4A]">Code du projet</h3>
+              <p className="text-xs text-slate-600">
+                Chaque projet possède un code unique modifiable directement ci-dessous (ex. : <strong className="font-mono text-[#1B2A4A]">COMP-HA0926</strong>).
+              </p>
+            </div>
+          </div>
+          <Badge className="bg-[#1B2A4A]/10 text-[#1B2A4A] ring-[#1B2A4A]/20 self-start sm:self-auto">
+            Accès réservé au Secrétariat
+          </Badge>
+        </div>
+
+        {projects.filter((p) => !p.archived).length === 0 ? (
+          <p className="mt-4 text-sm text-slate-500">Aucun projet actif. Créez un projet pour définir son code officiel.</p>
+        ) : (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {projects.filter((p) => !p.archived).map((p) => {
+              const draftVal = codeDrafts[p.id] ?? p.code ?? "COMP-HA0926";
+              const isModified = draftVal.trim().toUpperCase() !== (p.code || "").trim().toUpperCase();
+              return (
+                <div key={p.id} className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[#1B2A4A]">{p.title}</p>
+                    <p className="text-xs text-slate-500">
+                      Code actuel : <span className="font-mono font-bold text-[#9A7B2F]">{p.code || "COMP-HA0926"}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={draftVal}
+                      onChange={(e) => setCodeDrafts((prev) => ({ ...prev, [p.id]: e.target.value.toUpperCase() }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleSaveDirectCode(p);
+                        }
+                      }}
+                      aria-label={`Code du projet pour ${p.title}`}
+                      placeholder="COMP-HA0926"
+                      className={`${inputCls} w-40 font-mono text-xs font-bold uppercase tracking-wider text-[#1B2A4A]`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleSaveDirectCode(p)}
+                      disabled={savingCodeId === p.id || !draftVal.trim()}
+                      className={isModified ? btnGold : btnPrimary}
+                      title="Enregistrer le nouveau code du projet dans la base de données"
+                    >
+                      <Icon name="check" size={15} />
+                      <span>{savingCodeId === p.id ? "..." : "Enregistrer"}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Barre de recherche et filtres */}
+      <div className={`${cardCls} flex flex-wrap items-center gap-3 p-4`}>
+        <SearchBox value={q} onChange={setQ} placeholder="Rechercher par code (COMP-HA0926), titre, partenaire, objectif…" />
         <select value={statusFilter} onChange={(ev) => setStatusFilter(ev.target.value)}
           aria-label="Filtrer par statut" className={`${inputCls} w-auto`}>
           <option value="Tous">Tous les statuts</option>
@@ -422,52 +664,137 @@ function ProjectsView({ projects, setProjects, notify }: {
           {!showArchived && <button type="button" onClick={openNew} className={btnPrimary}><Icon name="plus" size={16} />Ajouter un projet</button>}
         </EmptyState>
       ) : view === "cards" ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-5 lg:grid-cols-2">
           {filtered.map((p) => (
-            <div key={p.id} className={`${cardCls} flex flex-col justify-between p-5`}>
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge className={STATUS_STYLE[p.status]}>{p.status}</Badge>
-                    <Badge className={PARTNER_STYLE[p.partner] || "bg-slate-100 text-slate-700 ring-slate-200"}>{p.partner}</Badge>
-                    <span className="text-xs text-slate-500">· {p.category}</span>
+            <div key={p.id} className={`${cardCls} flex flex-col justify-between overflow-hidden`}>
+              {p.image && (
+                <div className="relative h-44 w-full bg-slate-100 border-b border-slate-100">
+                  <img
+                    src={p.image}
+                    alt={p.title}
+                    className="h-full w-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).src = "/images/comite.jpg"; }}
+                  />
+                  <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-[#1B2A4A] px-2.5 py-1 font-mono text-xs font-bold uppercase text-[#E3C878] shadow-sm ring-1 ring-[#9A7B2F]/50">
+                      <Icon name="code" size={13} />
+                      {p.code || "COMP-HA0926"}
+                    </span>
+                    <Badge className={p.published !== false ? "bg-emerald-600 text-white ring-emerald-700" : "bg-slate-800/90 text-slate-200 ring-slate-700"}>
+                      {p.published !== false ? "Publié sur le site" : "Brouillon (Non publié)"}
+                    </Badge>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button type="button" onClick={() => openEdit(p)} className={iconBtn} title="Modifier" aria-label={`Modifier ${p.title}`}>
-                      <Icon name="edit" size={16} />
-                    </button>
-                    <button type="button" onClick={() => toggleArchive(p)} className={iconBtn}
-                      title={p.archived ? "Restaurer" : "Archiver"} aria-label={p.archived ? `Restaurer ${p.title}` : `Archiver ${p.title}`}>
-                      <Icon name={p.archived ? "restore" : "archive"} size={16} />
-                    </button>
-                    <button type="button" onClick={() => setToDelete(p)} className={`${iconBtn} hover:text-red-600`}
-                      title="Supprimer" aria-label={`Supprimer ${p.title}`}>
-                      <Icon name="trash" size={16} />
-                    </button>
-                  </div>
-                </div>
-                <h3 className="es-serif mt-3 text-xl font-semibold text-[#1B2A4A]">{p.title}</h3>
-                {p.leader && <p className="mt-0.5 text-xs font-medium text-slate-500">Responsable : {p.leader}</p>}
-                {p.description && <p className="mt-2 text-sm text-slate-600">{p.description}</p>}
-                {p.metrics.length > 0 && (
-                  <dl className="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-3 sm:grid-cols-3">
-                    {p.metrics.map((m, i) => (
-                      <div key={i}>
-                        <dt className="text-xs text-slate-500">{m.label || "Indicateur"}</dt>
-                        <dd className="es-serif text-lg font-bold text-[#1B2A4A]">{m.value || "—"}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                )}
-              </div>
-              {p.url && (
-                <div className="mt-4 border-t border-slate-100 pt-3">
-                  <a href={p.url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#9A7B2F] hover:underline">
-                    <Icon name="link" size={14} />Ouvrir le lien externe
-                  </a>
                 </div>
               )}
+
+              <div className="flex flex-1 flex-col justify-between p-5">
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge className={STATUS_STYLE[p.status] || STATUS_STYLE["En cours"]}>{p.status}</Badge>
+                      <Badge className={PARTNER_STYLE[p.partner] || "bg-slate-100 text-slate-700 ring-slate-200"}>{p.partner}</Badge>
+                      <span className="text-xs text-slate-500">· {p.category}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => togglePublish(p)}
+                        className={iconBtn}
+                        title={p.published !== false ? "Dépublier du site public" : "Publier sur le site public"}
+                        aria-label={p.published !== false ? `Dépublier ${p.title}` : `Publier ${p.title}`}
+                      >
+                        <Icon name={p.published !== false ? "eye" : "eyeOff"} size={16} />
+                      </button>
+                      <button type="button" onClick={() => openEdit(p)} className={iconBtn} title="Modifier le projet complet" aria-label={`Modifier ${p.title}`}>
+                        <Icon name="edit" size={16} />
+                      </button>
+                      <button type="button" onClick={() => toggleArchive(p)} className={iconBtn}
+                        title={p.archived ? "Restaurer" : "Archiver"} aria-label={p.archived ? `Restaurer ${p.title}` : `Archiver ${p.title}`}>
+                        <Icon name={p.archived ? "restore" : "archive"} size={16} />
+                      </button>
+                      <button type="button" onClick={() => setToDelete(p)} className={`${iconBtn} hover:text-red-600`}
+                        title="Supprimer" aria-label={`Supprimer ${p.title}`}>
+                        <Icon name="trash" size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Détails principaux & Code du projet */}
+                  <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 className="es-serif text-xl font-semibold text-[#1B2A4A]">{p.title}</h3>
+                    <span className="rounded-md bg-[#1B2A4A]/5 px-2 py-0.5 font-mono text-xs font-semibold text-[#1B2A4A]">
+                      Code : {p.code || "COMP-HA0926"}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    {p.leader && <span>Responsable : <strong className="text-slate-700">{p.leader}</strong></span>}
+                    {p.date && <span>· Date : <strong className="text-slate-700">{fmtDate(p.date) !== "—" ? fmtDate(p.date) : p.date}</strong></span>}
+                  </div>
+
+                  {p.description && <p className="mt-2.5 text-sm leading-relaxed text-slate-600">{p.description}</p>}
+
+                  {/* Objectifs du projet */}
+                  {p.objectives && p.objectives.length > 0 && (
+                    <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#1B2A4A]">
+                        Objectifs ({p.objectives.length})
+                      </p>
+                      <ul className="mt-1.5 space-y-1 text-xs text-slate-600">
+                        {p.objectives.map((obj, idx) => (
+                          <li key={idx} className="flex items-start gap-1.5">
+                            <span className="mt-0.5 text-[#9A7B2F]">•</span>
+                            <span>{obj}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Statistiques / Indicateurs d'impact */}
+                  {p.metrics && p.metrics.length > 0 && (
+                    <dl className="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-3 sm:grid-cols-4">
+                      {p.metrics.map((m, i) => (
+                        <div key={i}>
+                          <dt className="text-[11px] text-slate-500">{m.label || "Indicateur"}</dt>
+                          <dd className="es-serif text-base font-bold text-[#1B2A4A]">{m.value || "—"}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                </div>
+
+                {/* Pied de carte avec actions rapides */}
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(p)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#1B2A4A] hover:bg-slate-50"
+                    >
+                      <Icon name="edit" size={14} />Modifier
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => togglePublish(p)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                        p.published !== false
+                          ? "border border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                          : "bg-emerald-600 text-white hover:bg-emerald-700"
+                      }`}
+                    >
+                      <Icon name={p.published !== false ? "eyeOff" : "eye"} size={14} />
+                      {p.published !== false ? "Dépublier" : "Publier"}
+                    </button>
+                  </div>
+                  {p.url && (
+                    <a href={p.url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#9A7B2F] hover:underline">
+                      <Icon name="link" size={14} />Lien externe
+                    </a>
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -476,23 +803,39 @@ function ProjectsView({ projects, setProjects, notify }: {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-600">
               <tr>
+                <th className="px-4 py-3">Code du projet</th>
                 <th className="px-4 py-3">Projet</th>
-                <th className="px-4 py-3">Catégorie</th>
                 <th className="px-4 py-3">Partenaire</th>
-                <th className="px-4 py-3">Responsable</th>
+                <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Statut</th>
-                <th className="px-4 py-3">Indicateurs</th>
+                <th className="px-4 py-3">Publication</th>
+                <th className="px-4 py-3">Statistiques</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.map((p) => (
                 <tr key={p.id} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-3 font-medium text-[#1B2A4A]">{p.title}</td>
-                  <td className="px-4 py-3 text-slate-600">{p.category}</td>
+                  <td className="px-4 py-3 font-mono text-xs font-bold text-[#1B2A4A]">{p.code || "COMP-HA0926"}</td>
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-[#1B2A4A]">{p.title}</p>
+                    <p className="text-xs text-slate-500">{p.category} · {p.leader || "—"}</p>
+                  </td>
                   <td className="px-4 py-3"><Badge className={PARTNER_STYLE[p.partner] || "bg-slate-100 text-slate-700 ring-slate-200"}>{p.partner}</Badge></td>
-                  <td className="px-4 py-3 text-slate-600">{p.leader || "—"}</td>
-                  <td className="px-4 py-3"><Badge className={STATUS_STYLE[p.status]}>{p.status}</Badge></td>
+                  <td className="px-4 py-3 text-xs text-slate-600">{p.date || "—"}</td>
+                  <td className="px-4 py-3"><Badge className={STATUS_STYLE[p.status] || STATUS_STYLE["En cours"]}>{p.status}</Badge></td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => togglePublish(p)}
+                      className="cursor-pointer"
+                      title="Cliquer pour publier / dépublier"
+                    >
+                      <Badge className={p.published !== false ? "bg-emerald-50 text-emerald-800 ring-emerald-200" : "bg-slate-100 text-slate-600 ring-slate-200"}>
+                        {p.published !== false ? "Publié" : "Non publié"}
+                      </Badge>
+                    </button>
+                  </td>
                   <td className="px-4 py-3 text-xs text-slate-600">
                     {p.metrics.map((m) => `${m.label}: ${m.value}`).join(" · ") || "—"}
                   </td>
@@ -515,61 +858,187 @@ function ProjectsView({ projects, setProjects, notify }: {
       )}
 
       {creating && (
-        <Modal title={editing ? "Modifier le projet" : "Nouveau projet social"} onClose={() => setCreating(false)} wide>
-          <form onSubmit={save} className="space-y-4" noValidate>
+        <Modal title={editing ? `Modifier le projet — ${editing.code || "COMP-HA0926"}` : "Nouveau projet social"} onClose={() => setCreating(false)} wide>
+          <form onSubmit={save} className="space-y-5" noValidate>
+            {/* Bloc Code du projet mis en évidence dans l'éditeur */}
+            <div className="rounded-xl border-2 border-[#9A7B2F]/40 bg-[#1B2A4A]/5 p-4">
+              <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
+                <Field
+                  label="Code du projet"
+                  required
+                  hint="Code unique d'identification (ex. : COMP-HA0926). Lettres, chiffres et tirets."
+                  error={err.code}
+                >
+                  <input
+                    type="text"
+                    value={form.code}
+                    onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+                    placeholder="COMP-HA0926"
+                    className={`${inputCls} font-mono font-bold uppercase tracking-wider text-[#1B2A4A]`}
+                  />
+                </Field>
+                <div className="flex flex-col justify-center pt-1 sm:pt-6">
+                  <label className="inline-flex cursor-pointer items-center gap-2.5 text-sm font-medium text-[#1B2A4A]">
+                    <input
+                      type="checkbox"
+                      checked={form.published !== false}
+                      onChange={(e) => setForm({ ...form, published: e.target.checked })}
+                      className="h-4 w-4 rounded border-slate-300 text-[#1B2A4A] focus:ring-[#9A7B2F]"
+                    />
+                    <span>Publier ce projet sur le site public</span>
+                  </label>
+                  <span className="mt-1 text-xs text-slate-500">
+                    Décochez pour conserver ce projet en brouillon interne dans le secrétariat.
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Field label="Titre du projet" required error={err.title}>
                   <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    placeholder="Ex. : Électrification solaire, Élevage caprin…" className={inputCls} />
+                    placeholder="Ex. : Compassion HA0926" className={inputCls} />
                 </Field>
               </div>
+
+              <Field label="Partenaire" required error={err.partner}>
+                <input
+                  type="text"
+                  list="sec-partner-suggestions"
+                  value={form.partner}
+                  onChange={(e) => setForm({ ...form, partner: e.target.value })}
+                  placeholder="Ex. : Compassion International"
+                  className={inputCls}
+                />
+                <datalist id="sec-partner-suggestions">
+                  {PARTNERS.map((p) => <option key={p} value={p} />)}
+                </datalist>
+              </Field>
+
               <Field label="Catégorie">
                 <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
                   {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </Field>
-              <Field label="Partenaire">
-                <select value={form.partner} onChange={(e) => setForm({ ...form, partner: e.target.value })} className={inputCls}>
-                  {PARTNERS.map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </Field>
-              <Field label="Responsable">
-                <input type="text" value={form.leader} onChange={(e) => setForm({ ...form, leader: e.target.value })}
-                  placeholder="Nom du frère ou de la sœur" className={inputCls} />
-              </Field>
-              <Field label="Statut">
+
+              <Field label="Statut du projet">
                 <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as Status })} className={inputCls}>
                   {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </Field>
+
+              <Field label="Date de lancement / référence" required error={err.date}>
+                <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className={inputCls} />
+              </Field>
+
+              <Field label="Responsable du projet">
+                <input type="text" value={form.leader} onChange={(e) => setForm({ ...form, leader: e.target.value })}
+                  placeholder="Ex. : Sœur Marie-Carmelle Louis" className={inputCls} />
+              </Field>
+
+              <Field label="Lien externe (facultatif)" error={err.url}>
+                <input type="url" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })}
+                  placeholder="https://…" className={inputCls} />
+              </Field>
+
               <div className="sm:col-span-2">
-                <Field label="Description">
-                  <textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    placeholder="Objectif, bénéficiaires, déroulement…" className={inputCls} />
+                <Field label="Description complète" required error={err.description}>
+                  <textarea rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder="Présentation détaillée du projet, bénéficiaires, déroulement…" className={inputCls} />
                 </Field>
               </div>
-              <div className="sm:col-span-2">
-                <Field label="Lien externe (facultatif)" hint="Site du partenaire, dossier en ligne, photos…" error={err.url}>
-                  <input type="url" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })}
-                    placeholder="https://…" className={inputCls} />
+
+              {/* Image du projet */}
+              <div className="sm:col-span-2 space-y-2 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                <Field label="Image du projet" hint="Saisissez une URL, choisissez une photo de l'église ou téléversez une image depuis votre appareil.">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <input
+                      type="text"
+                      value={form.image}
+                      onChange={(e) => setForm({ ...form, image: e.target.value })}
+                      placeholder="/images/comite.jpg ou https://..."
+                      className={inputCls}
+                    />
+                    <label className={`${btnGhost} shrink-0 cursor-pointer`}>
+                      <Icon name="upload" size={15} />
+                      <span>Téléverser</span>
+                      <input type="file" accept="image/*" onChange={handleImageFileUpload} className="hidden" />
+                    </label>
+                  </div>
                 </Field>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <span className="text-xs font-medium text-slate-500">Images rapides :</span>
+                  {PRESET_PROJECT_IMAGES.map((preset) => (
+                    <button
+                      key={preset.path}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, image: preset.path }))}
+                      className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                        form.image === preset.path
+                          ? "border-[#9A7B2F] bg-[#1B2A4A] text-white"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div>
+            {/* Objectifs du projet */}
+            <div className="rounded-xl border border-slate-200 p-4">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-700">Indicateurs d'impact (chiffres clés)</span>
+                <span className="text-sm font-semibold text-[#1B2A4A]">Objectifs du projet</span>
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, objectives: [...f.objectives, ""] }))}
+                  className="text-xs font-semibold text-[#9A7B2F] hover:underline"
+                >
+                  + Ajouter un objectif
+                </button>
+              </div>
+              <div className="space-y-2">
+                {form.objectives.map((obj, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={obj}
+                      onChange={(e) => setObjective(i, e.target.value)}
+                      placeholder={`Objectif ${i + 1} (ex. : Assurer le suivi scolaire et médical des enfants inscrits)`}
+                      aria-label={`Objectif ${i + 1}`}
+                      className={inputCls}
+                    />
+                    {form.objectives.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, objectives: f.objectives.filter((_, idx) => idx !== i) }))}
+                        className={iconBtn}
+                        aria-label="Retirer cet objectif"
+                      >
+                        <Icon name="x" size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Statistiques / Indicateurs d'impact */}
+            <div className="rounded-xl border border-slate-200 p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-semibold text-[#1B2A4A]">Statistiques & Indicateurs d'impact</span>
                 <button type="button" onClick={() => setForm((f) => ({ ...f, metrics: [...f.metrics, { label: "", value: "" }] }))}
-                  className="text-xs font-semibold text-[#9A7B2F] hover:underline">+ Ajouter un indicateur</button>
+                  className="text-xs font-semibold text-[#9A7B2F] hover:underline">+ Ajouter une statistique</button>
               </div>
               <div className="space-y-2">
                 {form.metrics.map((m, i) => (
                   <div key={i} className="flex gap-2">
                     <input type="text" value={m.label} onChange={(e) => setMetric(i, "label", e.target.value)}
-                      placeholder="Libellé (ex. : Familles bénéficiaires)" aria-label="Libellé de l'indicateur" className={inputCls} />
+                      placeholder="Libellé (ex. : Enfants parrainés)" aria-label="Libellé de l'indicateur" className={inputCls} />
                     <input type="text" value={m.value} onChange={(e) => setMetric(i, "value", e.target.value)}
-                      placeholder="Valeur (ex. : 25)" aria-label="Valeur de l'indicateur" className={`${inputCls} max-w-[160px]`} />
+                      placeholder="Valeur (ex. : 250+)" aria-label="Valeur de l'indicateur" className={`${inputCls} max-w-[160px]`} />
                     {form.metrics.length > 1 && (
                       <button type="button" onClick={() => setForm((f) => ({ ...f, metrics: f.metrics.filter((_, idx) => idx !== i) }))}
                         className={iconBtn} aria-label="Retirer cet indicateur"><Icon name="x" size={16} /></button>
@@ -578,16 +1047,17 @@ function ProjectsView({ projects, setProjects, notify }: {
                 ))}
               </div>
             </div>
-            <FormActions onCancel={() => setCreating(false)} submitLabel={editing ? "Enregistrer" : "Créer le projet"} />
+
+            <FormActions onCancel={() => setCreating(false)} submitLabel={saving ? "Enregistrement..." : editing ? "Enregistrer les modifications" : "Créer le projet"} />
           </form>
         </Modal>
       )}
 
       {toDelete && (
         <ConfirmDialog title="Supprimer ce projet ?"
-          message={`Le projet « ${toDelete.title} » sera définitivement supprimé. Astuce : vous pouvez aussi simplement l'archiver.`}
-          confirmLabel="Supprimer"
-          onConfirm={() => { setProjects((l) => l.filter((x) => x.id !== toDelete.id)); setToDelete(null); notify("Projet supprimé."); }}
+          message={`Le projet « ${toDelete.title} » (Code : ${toDelete.code || "COMP-HA0926"}) sera définitivement supprimé du site public et de la base de données.`}
+          confirmLabel="Supprimer définitivement"
+          onConfirm={confirmDelete}
           onCancel={() => setToDelete(null)} />
       )}
     </div>

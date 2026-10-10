@@ -28,7 +28,10 @@ import {
   seedEvents,
   seedSermons,
   seedAnnouncements,
-  localAudioUrls
+  localAudioUrls,
+  cleanProjectsArray,
+  normalizeProjectItem,
+  isLegacyRemovedProject
 } from '../components/admin/secretariatCore';
 
 const TOKEN_KEY = 'dame_admin_auth_token';
@@ -46,33 +49,37 @@ export interface AdminUser {
   displayName: string;
 }
 
-export const HONNOLD_SOLAR_PROJECT: ChurchPublication = {
-  id: 'projet-honnold-solaire',
-  title: "Projet d'Énergie Solaire Communautaire à Damé (Partenariat Honnold Foundation)",
-  summary: "En partenariat avec la Honnold Foundation, l'Église du Nazaréen de Damé déploie un programme d'énergie solaire propre pour remplacer les lampes à kérosène toxiques et permettre aux élèves d'étudier en toute sécurité.",
-  content: "En partenariat avec la Honnold Foundation, l'Église du Nazaréen de Damé déploie un programme d'énergie solaire propre pour remplacer les lampes à kérosène toxiques et permettre aux élèves d'étudier en toute sécurité.\n\nCe partenariat d'envergure permet la distribution et l'installation de 100 stations solaires portables de haute qualité au bénéfice direct de plus de 300 écoliers et élèves de Damé. Il garantit un éclairage fiable, propre et sans danger pour leurs études nocturnes, tout en supprimant l'inhalation nocive de fumées de kérosène.\n\nLe projet s'appuie sur une gouvernance communautaire exemplaire avec la mise en place d'un Comité d'Énergie Communautaire composé à 50% de femmes, garantissant une appropriation pérenne et solidaire au sein de notre paroisse et de notre localité.",
-  image: '/images/cour_paysage.jpg',
-  category: 'Projets Sociaux',
-  author: 'Pasteur Bequel CHERELUS, Leader du Projet',
-  date: 'Septembre 2026',
+export const COMPASSION_PROJECT: ChurchPublication = {
+  id: 'projet-compassion-ha0926',
+  code: 'COMP-HA0926',
+  title: 'Compassion HA0926',
+  partner: 'Compassion International',
+  summary: "Centre d'accueil et de développement holistique des enfants parrainés (CDEJ HA0926) en partenariat avec Compassion International : soutien scolaire, suivi médical et nutritionnel, activités socio-éducatives et formation spirituelle.",
+  content: "Centre d'accueil et de développement holistique des enfants parrainés (CDEJ HA0926) en partenariat avec Compassion International : soutien scolaire, suivi médical et nutritionnel, activités socio-éducatives et formation spirituelle.\n\nÉtabli au sein de l'Église du Nazaréen de Damé, le Centre de Développement de l'Enfant et des Jeunes (CDEJ HA0926) accompagne plus de 250 enfants et adolescents de la 3ème Section Damé à travers un programme structuré en quatre volets : spirituel, physique, cognitif et socio-émotionnel.",
+  image: '/images/comite.jpg',
+  category: "Parrainage d'enfants",
+  author: 'Sœur Marie-Carmelle Louis',
+  date: '2019-09-01',
   status: 'Publiée',
   publicationType: 'projet',
   editorMode: 'visual',
   hasCustomImage: true,
-  budget: 'Partenariat Honnold Foundation',
-  targetGoal: '100 stations solaires portables | 300+ élèves impactés | 50% de femmes dans le Comité d\'Énergie',
+  budget: "Partenaire : Compassion International (Parrainage d'enfants)",
+  targetGoal: "250+ Enfants parrainés | 4 Domaines d'action | 12 Tuteurs & Encadreurs | 100% Suivi médical & scolaire",
   projectStatus: 'En cours',
-  externalUrl: 'https://www.honnoldfoundation.org/partner/eglise-du-nazareen-de-dame',
-  pastorQuote: {
-    text: "Lorsque nos enfants peuvent étudier en toute sécurité la nuit sans la fumée toxique du kérosène, nous éclairons le chemin pour sortir de la pauvreté et nous construisons un avenir durable grâce à l'unité communautaire.",
-    author: "Pasteur Bequel CHERELUS, Leader du Projet"
-  },
-  impactMetrics: [
-    { label: "Stations solaires portables", value: "100" },
-    { label: "Élèves impactés", value: "300+" },
-    { label: "Femmes dans le Comité d'Énergie", value: "50%" }
+  objectives: [
+    'Assurer le suivi scolaire, pédagogique et la fourniture de matériel didactique pour chaque enfant inscrit.',
+    'Garantir un bilan médical annuel, des soins préventifs et un accompagnement nutritionnel régulier.',
+    "Offrir un encadrement spirituel et moral fondé sur les valeurs bibliques et l'amour du prochain.",
+    "Accompagner les parents et tuteurs dans la protection et l'épanouissement familial des enfants."
   ],
-  createdAt: '2026-09-01T08:00:00.000Z'
+  impactMetrics: [
+    { label: 'Enfants parrainés', value: '250+' },
+    { label: "Domaines d'action", value: '4' },
+    { label: 'Tuteurs & Encadreurs', value: '12' },
+    { label: 'Suivi médical & scolaire', value: '100%' }
+  ],
+  createdAt: '2019-09-01T08:00:00.000Z'
 };
 
 export const apiService = {
@@ -730,12 +737,14 @@ export const apiService = {
 
     try {
       let backup: ChurchPublication[] = JSON.parse(localStorage.getItem(LOCAL_BACKUP_PUBLICATIONS) || '[]');
+      backup = backup.filter(p => !isLegacyRemovedProject(p));
+      serverPubs = serverPubs.filter(p => !isLegacyRemovedProject(p));
       
       // Synchronisation directe avec l'Espace Secrétariat (end_sec_projects & end_sec_announcements)
       let secProjects: SecProject[] = [];
       try {
         const rawSecProj = localStorage.getItem('end_sec_projects');
-        secProjects = rawSecProj ? JSON.parse(rawSecProj) : seedProjects();
+        secProjects = rawSecProj ? cleanProjectsArray(JSON.parse(rawSecProj)) : seedProjects();
       } catch {
         secProjects = seedProjects();
       }
@@ -749,36 +758,36 @@ export const apiService = {
       }
 
       const mappedSecProjects: ChurchPublication[] = secProjects
-        .filter(p => !p.archived)
+        .filter(p => !p.archived && (includeDrafts || p.published !== false))
         .map(p => {
-          const isHonnold = p.id === HONNOLD_SOLAR_PROJECT.id || p.partner === 'Honnold';
-          const mappedStatus: 'Planifié' | 'En cours' | 'Terminé' =
-            p.status === 'En attente' ? 'Planifié' : p.status;
+          const mappedStatus: 'Planifié' | 'En cours' | 'Terminé' | 'En attente' =
+            p.status === 'En attente' ? 'En attente' : p.status;
           const metricsStr = p.metrics && p.metrics.length > 0
             ? p.metrics.map(m => `${m.value} ${m.label}`).join(' | ')
             : undefined;
+          const imgPath = p.image && p.image.trim() !== '' ? p.image : '/images/comite.jpg';
           return {
-            ...(isHonnold ? HONNOLD_SOLAR_PROJECT : {}),
             id: p.id,
+            code: p.code || 'COMP-HA0926',
             title: p.title,
-            summary: p.description || (isHonnold ? HONNOLD_SOLAR_PROJECT.summary : ''),
-            content: isHonnold && p.description === HONNOLD_SOLAR_PROJECT.summary
-              ? HONNOLD_SOLAR_PROJECT.content
-              : (p.description || ''),
-            image: isHonnold ? '/images/cour_paysage.jpg' : '/images/ecole_facade.jpg',
-            category: 'Projets Sociaux',
+            partner: p.partner || 'Compassion International',
+            summary: p.description || '',
+            content: p.description || '',
+            image: imgPath,
+            category: p.category || 'Projets Sociaux',
             author: p.leader || 'Pasteur Bequel CHERELUS',
-            date: isHonnold ? 'Septembre 2026' : new Date().toISOString().split('T')[0],
-            status: 'Publiée',
+            date: p.date || new Date().toISOString().split('T')[0],
+            status: p.published === false ? 'Brouillon' : 'Publiée',
             publicationType: 'projet',
             editorMode: 'visual',
-            hasCustomImage: isHonnold,
-            budget: p.partner ? `Partenaire : ${p.partner} (${p.category})` : p.category,
+            hasCustomImage: Boolean(p.image && p.image.trim() !== ''),
+            budget: p.partner ? `Partenaire : ${p.partner}${p.category ? ` (${p.category})` : ''}` : p.category,
             targetGoal: metricsStr,
             projectStatus: mappedStatus,
-            externalUrl: p.url || (isHonnold ? HONNOLD_SOLAR_PROJECT.externalUrl : undefined),
+            externalUrl: p.url || undefined,
+            objectives: Array.isArray(p.objectives) && p.objectives.length > 0 ? p.objectives : undefined,
             impactMetrics: p.metrics && p.metrics.length > 0 ? p.metrics : undefined,
-            createdAt: new Date().toISOString()
+            createdAt: p.date || new Date().toISOString()
           } as ChurchPublication;
         });
 
@@ -798,14 +807,19 @@ export const apiService = {
         createdAt: a.date
       }));
 
+      // Pour les projets, secProjects (Espace Secrétariat) fait foi (y compris pour les suppressions)
+      const secProjectIds = new Set(secProjects.map(p => p.id));
+
       // Fusionner les publications du Secrétariat, serveur et locales (priorité au Secrétariat en temps réel)
       const mergedMap = new Map<string, ChurchPublication>();
       mappedSecProjects.forEach(p => mergedMap.set(p.id, p));
       mappedSecAnnouncements.forEach(a => mergedMap.set(a.id, a));
       serverPubs.forEach(p => {
+        if (p.publicationType === 'projet' && !secProjectIds.has(p.id)) return;
         if (!mergedMap.has(p.id)) mergedMap.set(p.id, p);
       });
       backup.forEach(p => {
+        if (p.publicationType === 'projet' && !secProjectIds.has(p.id)) return;
         if (!mergedMap.has(p.id)) {
           mergedMap.set(p.id, p);
         }
@@ -818,44 +832,198 @@ export const apiService = {
       if (type && type !== 'All' && type !== 'all') {
         allPubs = allPubs.filter(p => {
           if (p.publicationType) return p.publicationType === type;
-          if (type === 'projet') return p.category.toLowerCase().includes('projet');
+          if (type === 'projet') return p.category.toLowerCase().includes('projet') || p.category.toLowerCase().includes('parrainage');
           if (type === 'annonce') return p.category.toLowerCase().includes('annonce');
           return true;
         });
       }
 
-      // Garantir l'intégration directe et pérenne du Projet Honnold sans dépendre du localStorage
-      if (!allPubs.some(p => p.id === HONNOLD_SOLAR_PROJECT.id)) {
-        if (!type || type === 'all' || type === 'All' || type === 'projet') {
-          if (!category || category === 'Toutes' || category === 'All' || category === 'Projets Sociaux' || category.toLowerCase().includes('projet')) {
-            allPubs.unshift(HONNOLD_SOLAR_PROJECT);
-          }
-        }
-      }
-
       // Conserver le backup synchronisé en nettoyant les images volumineuses pour éviter QuotaExceededError
       const safeBackup = allPubs.slice(0, 100).map(p => {
         if (p.image && p.image.startsWith('data:image') && p.image.length > 80000) {
-          return { ...p, image: '/images/ecole_facade.jpg' };
+          return { ...p, image: '/images/comite.jpg' };
         }
         return p;
       });
       safeLocalStorageSet(LOCAL_BACKUP_PUBLICATIONS, JSON.stringify(safeBackup));
       return allPubs;
     } catch {
-      if ((!type || type === 'projet') && !serverPubs.some(p => p.id === HONNOLD_SOLAR_PROJECT.id)) {
-        return [HONNOLD_SOLAR_PROJECT, ...serverPubs];
-      }
-      return serverPubs;
+      return serverPubs.filter(p => !isLegacyRemovedProject(p));
     }
   },
 
   async getProjects(includeDrafts: boolean = false): Promise<ChurchPublication[]> {
-    const list = await this.getPublications(includeDrafts, undefined, undefined, 'projet');
-    if (!list.some(p => p.id === HONNOLD_SOLAR_PROJECT.id)) {
-      return [HONNOLD_SOLAR_PROJECT, ...list];
+    // Synchroniser d'abord depuis /api/projects si disponible
+    try {
+      const response = await fetch(`/api/projects?includeDrafts=${includeDrafts ? 'true' : 'false'}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data.projects)) {
+          const normalized = data.projects
+            .filter((p: any) => !isLegacyRemovedProject(p))
+            .map((p: any, idx: number) => normalizeProjectItem(p, idx));
+          // Si localStorage n'a pas encore été initialisé, enregistrer les projets du serveur
+          if (!localStorage.getItem('end_sec_projects')) {
+            safeLocalStorageSet('end_sec_projects', JSON.stringify(normalized));
+          }
+        }
+      }
+    } catch {
+      // fallback localStorage
     }
-    return list;
+    return this.getPublications(includeDrafts, undefined, undefined, 'projet');
+  },
+
+  // ----------------------------------------------------
+  // SOCIAL PROJECTS DIRECT CRUD & CODE MANAGEMENT
+  // ----------------------------------------------------
+  async getSocialProjects(includeDrafts: boolean = true): Promise<SecProject[]> {
+    let localProjects: SecProject[] = [];
+    try {
+      const raw = localStorage.getItem('end_sec_projects');
+      localProjects = raw ? cleanProjectsArray(JSON.parse(raw)) : seedProjects();
+    } catch {
+      localProjects = seedProjects();
+    }
+
+    try {
+      const response = await fetch(`/api/projects?includeDrafts=${includeDrafts ? 'true' : 'false'}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data.projects) && data.projects.length > 0) {
+          const serverProjects = data.projects
+            .filter((p: any) => !isLegacyRemovedProject(p))
+            .map((p: any, idx: number) => normalizeProjectItem(p, idx));
+          if (!localStorage.getItem('end_sec_projects')) {
+            safeLocalStorageSet('end_sec_projects', JSON.stringify(serverProjects));
+            return serverProjects;
+          }
+        }
+      }
+    } catch {
+      // use localProjects
+    }
+    return includeDrafts ? localProjects : localProjects.filter(p => p.published && !p.archived);
+  },
+
+  async createSocialProject(projectData: Partial<SecProject>): Promise<{ success: boolean; project?: SecProject; error?: string }> {
+    const cleanCode = String(projectData.code || '').trim().toUpperCase();
+    const cleanTitle = String(projectData.title || '').trim();
+    if (!cleanCode || !/^[A-Z0-9-_]{2,32}$/.test(cleanCode)) {
+      return { success: false, error: 'Le code du projet est requis (2 à 32 caractères : lettres, chiffres, tirets).' };
+    }
+    if (!cleanTitle) {
+      return { success: false, error: 'Le titre du projet est obligatoire.' };
+    }
+
+    const token = this.getToken();
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ ...projectData, code: cleanCode, title: cleanTitle })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const created = normalizeProjectItem(data.project);
+        return { success: true, project: created };
+      } else {
+        const err = await response.json().catch(() => ({}));
+        if (response.status === 400 && err.error) {
+          return { success: false, error: err.error };
+        }
+      }
+    } catch (err) {
+      console.warn('[Projects] Création serveur indisponible, sauvegarde locale:', err);
+    }
+
+    const fallback = normalizeProjectItem({ ...projectData, code: cleanCode, title: cleanTitle });
+    return { success: true, project: fallback };
+  },
+
+  async updateSocialProject(id: string, updates: Partial<SecProject>): Promise<{ success: boolean; project?: SecProject; error?: string }> {
+    if (updates.code !== undefined) {
+      const cleanCode = String(updates.code).trim().toUpperCase();
+      if (!cleanCode || !/^[A-Z0-9-_]{2,32}$/.test(cleanCode)) {
+        return { success: false, error: 'Le code du projet doit contenir 2 à 32 caractères (lettres, chiffres, tirets).' };
+      }
+      updates = { ...updates, code: cleanCode };
+    }
+
+    const token = this.getToken();
+    try {
+      const response = await fetch(`/api/projects/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(updates)
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return { success: true, project: normalizeProjectItem(data.project) };
+      } else {
+        const err = await response.json().catch(() => ({}));
+        if (response.status === 400 && err.error) {
+          return { success: false, error: err.error };
+        }
+      }
+    } catch (err) {
+      console.warn('[Projects] Mise à jour serveur indisponible, sauvegarde locale:', err);
+    }
+
+    return { success: true };
+  },
+
+  async updateProjectCode(id: string, code: string): Promise<{ success: boolean; project?: SecProject; error?: string }> {
+    const cleanCode = String(code || '').trim().toUpperCase();
+    if (!cleanCode || !/^[A-Z0-9-_]{2,32}$/.test(cleanCode)) {
+      return { success: false, error: 'Code invalide. Utilisez 2 à 32 caractères (lettres, chiffres, tirets), ex: COMP-HA0926.' };
+    }
+
+    const token = this.getToken();
+    try {
+      const response = await fetch(`/api/projects/${id}/code`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ code: cleanCode })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return { success: true, project: normalizeProjectItem(data.project) };
+      } else {
+        const err = await response.json().catch(() => ({}));
+        if (response.status === 400 && err.error) {
+          return { success: false, error: err.error };
+        }
+      }
+    } catch (err) {
+      console.warn('[Projects] Mise à jour code serveur indisponible, sauvegarde locale:', err);
+    }
+
+    return { success: true };
+  },
+
+  async deleteSocialProject(id: string): Promise<{ success: boolean; error?: string }> {
+    const token = this.getToken();
+    try {
+      await fetch(`/api/projects/${id}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+    } catch (err) {
+      console.warn('[Projects] Suppression serveur indisponible, suppression locale:', err);
+    }
+    return { success: true };
   },
 
   async createPublication(pub: {

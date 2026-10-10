@@ -44,8 +44,8 @@ export interface BrevoSendResult {
   error?: string;
 }
 
-function getBrevoApiKey(): string | null {
-  const raw = process.env.BREVO_API_KEY;
+function getBrevoApiKey(overrideKey?: string): string | null {
+  const raw = overrideKey || process.env.BREVO_API_KEY;
   if (!raw) return null;
   const trimmed = raw.trim();
   if (!trimmed || trimmed === 'MY_BREVO_API_KEY' || trimmed === 'YOUR_BREVO_API_KEY') {
@@ -54,8 +54,16 @@ function getBrevoApiKey(): string | null {
   return trimmed;
 }
 
-export function isBrevoConfigured(): boolean {
-  return getBrevoApiKey() !== null;
+export function isBrevoConfigured(overrideKey?: string): boolean {
+  return getBrevoApiKey(overrideKey) !== null;
+}
+
+export function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
+
+export function sanitizeText(input: string, maxLength = 200): string {
+  return String(input || '').replace(/[<>]/g, '').trim().slice(0, maxLength);
 }
 
 export function getBrevoSender(): { email: string; name: string; listId: number } {
@@ -377,4 +385,118 @@ export async function sendNewsletterViaBrevo(input: BrevoSendEmailInput): Promis
       error: err?.message || 'Erreur réseau lors de la communication avec le serveur Brevo.',
     };
   }
+}
+
+/* ────────────────────────────── Helpers compatibles Cloudflare Pages Functions ────────────────────────────── */
+
+export async function syncSubscriberToBrevo(
+  contact: BrevoContactInput,
+  overrideApiKey?: string,
+  overrideListId?: string
+): Promise<BrevoSyncResult> {
+  const apiKey = getBrevoApiKey(overrideApiKey);
+  if (!apiKey) {
+    return { synced: false, mode: 'local' };
+  }
+  const listIdNum = Number(overrideListId || process.env.BREVO_LIST_ID || '2') || 2;
+  return syncContactToBrevo({ ...contact, listIds: [listIdNum] });
+}
+
+export async function updateSubscriberStatusInBrevo(
+  email: string,
+  status: 'Active' | 'Unsubscribed',
+  overrideApiKey?: string
+): Promise<{ synced: boolean }> {
+  const apiKey = getBrevoApiKey(overrideApiKey);
+  if (!apiKey) return { synced: false };
+  try {
+    const response = await fetch(
+      `${BREVO_API_BASE}/contacts/${encodeURIComponent(email.trim().toLowerCase())}`,
+      {
+        method: 'PUT',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'api-key': apiKey,
+        },
+        body: JSON.stringify({ emailBlacklisted: status === 'Unsubscribed' }),
+      }
+    );
+    return { synced: response.ok || response.status === 204 };
+  } catch {
+    return { synced: false };
+  }
+}
+
+export async function deleteSubscriberFromBrevo(
+  email: string,
+  overrideApiKey?: string
+): Promise<{ synced: boolean }> {
+  const apiKey = getBrevoApiKey(overrideApiKey);
+  if (!apiKey) return { synced: false };
+  const ok = await removeContactFromBrevo(email);
+  return { synced: ok };
+}
+
+export async function fetchSubscribersFromBrevo(
+  overrideApiKey?: string
+): Promise<{
+  synced: boolean;
+  contacts: Array<{ email: string; name: string; subscribedAt: string; status: 'Active' | 'Unsubscribed' }>;
+}> {
+  const apiKey = getBrevoApiKey(overrideApiKey);
+  if (!apiKey) return { synced: false, contacts: [] };
+  try {
+    const response = await fetch(`${BREVO_API_BASE}/contacts?limit=200&offset=0`, {
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+        'api-key': apiKey,
+      },
+    });
+    if (!response.ok) return { synced: false, contacts: [] };
+    const data: any = await response.json().catch(() => ({}));
+    const rawContacts = Array.isArray(data?.contacts) ? data.contacts : [];
+    return {
+      synced: true,
+      contacts: rawContacts.map((c: any) => ({
+        email: String(c?.email || ''),
+        name:
+          [c?.attributes?.FIRSTNAME || c?.attributes?.PRENOM, c?.attributes?.LASTNAME || c?.attributes?.NOM]
+            .filter(Boolean)
+            .join(' ')
+            .trim() || 'Abonné Paroisse',
+        subscribedAt: c?.createdAt || new Date().toISOString(),
+        status: c?.emailBlacklisted ? 'Unsubscribed' : 'Active',
+      })),
+    };
+  } catch {
+    return { synced: false, contacts: [] };
+  }
+}
+
+export async function sendCampaignViaBrevo(
+  campaign: { title: string; subject: string; content: string; imageUrl?: string; targetAudience?: string },
+  recipients: Array<{ email: string; name?: string }>,
+  options?: { apiKey?: string; senderEmail?: string; senderName?: string }
+): Promise<{
+  success: boolean;
+  brevoSynced: boolean;
+  recipientCount: number;
+  messageId?: string;
+  error?: string;
+}> {
+  const res = await sendNewsletterViaBrevo({
+    title: campaign.title,
+    subject: campaign.subject,
+    content: campaign.content,
+    recipients,
+  });
+  return {
+    success: res.success,
+    brevoSynced: res.mode === 'brevo' && res.success,
+    recipientCount: res.sentCount,
+    messageId: res.messageId,
+    error: res.error,
+  };
 }
